@@ -4,6 +4,7 @@ import { ErrorFallback } from '../app';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
@@ -12,6 +13,8 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  readonly state: State;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -29,12 +32,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Error caught by boundary:', error, errorInfo);
-
-    // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-    // Example:
-    // Sentry.captureException(error, {
-    //   contexts: { react: { componentStack: errorInfo.componentStack } }
-    // });
   }
 
   handleReset = (): void => {
@@ -45,19 +42,22 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render(): ReactNode {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
+    const { hasError, error } = this.state;
+    const { children, fallback } = this.props;
+
+    if (hasError) {
+      if (fallback) {
+        return fallback;
       }
 
       return (
         <ErrorFallback
-          error={this.state.error}
+          error={error}
           resetError={this.handleReset}
         />
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
