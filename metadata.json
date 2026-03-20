@@ -1,0 +1,5 @@
+{
+  "name": "Mai House Apartment Management",
+  "description": "Hệ thống vận hành và quản lý căn hộ Mai House với các tính năng quản lý phòng, cơ sở vật chất, hóa đơn điện nước và đăng ký khách lưu trú.",
+  "requestFramePermissions": ["camera"]
+}

@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "Thông tin phòng trong căn hộ",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string", "description": "Số phòng" },
+        "type": { "type": "string", "enum": ["single", "double"], "description": "Loại phòng (đơn/đôi)" },
+        "status": { "type": "string", "enum": ["available", "occupied", "maintenance"], "description": "Trạng thái phòng" },
+        "price": { "type": "number", "description": "Giá thuê phòng" },
+        "lastElectricityMeter": { "type": "number", "description": "Số điện cũ" },
+        "paymentStatus": { "type": "string", "enum": ["paid", "unpaid", "debt"], "description": "Trạng thái thanh toán" },
+        "currentGuestId": { "type": "string", "description": "ID khách đang ở" },
+        "facilities": { "type": "array", "items": { "type": "string" }, "description": "Danh sách ID cơ sở vật chất trong phòng" }
+      },
+      "required": ["number", "type", "status", "price"]
+    },
+    "Guest": {
+      "title": "Guest",
+      "description": "Thông tin khách lưu trú",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Họ tên" },
+        "idNumber": { "type": "string", "description": "Số CCCD/Passport" },
+        "phone": { "type": "string", "description": "Số điện thoại" },
+        "email": { "type": "string", "description": "Email" },
+        "idPhoto": { "type": "string", "description": "Ảnh CCCD/Passport" },
+        "checkInDate": { "type": "string", "format": "date", "description": "Ngày nhận phòng" }
+      },
+      "required": ["name", "idNumber"]
+    },
+    "Facility": {
+      "title": "Facility",
+      "description": "Thông tin cơ sở vật chất",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Tên thiết bị" },
+        "compensationPrice": { "type": "number", "description": "Giá đền bù nếu hư hại" }
+      },
+      "required": ["name", "compensationPrice"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Hóa đơn thanh toán hàng tháng",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string", "description": "ID phòng" },
+        "month": { "type": "number", "description": "Tháng" },
+        "year": { "type": "number", "description": "Năm" },
+        "electricityOld": { "type": "number", "description": "Số điện cũ" },
+        "electricityNew": { "type": "number", "description": "Số điện mới" },
+        "electricityUsed": { "type": "number", "description": "Số điện đã dùng" },
+        "electricityPrice": { "type": "number", "description": "Tiền điện" },
+        "waterPrice": { "type": "number", "description": "Tiền nước (cố định 50k)" },
+        "extraServices": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "price": { "type": "number" } } }, "description": "Dịch vụ thêm" },
+        "totalPrice": { "type": "number", "description": "Tổng tiền" },
+        "status": { "type": "string", "enum": ["paid", "unpaid"], "description": "Trạng thái" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo" }
+      },
+      "required": ["roomId", "month", "year", "totalPrice"]
+    }
+  },
+  "firestore": {
+    "/rooms": { "schema": "Room", "description": "Danh sách phòng" },
+    "/guests": { "schema": "Guest", "description": "Danh sách khách" },
+    "/facilities": { "schema": "Facility", "description": "Danh sách cơ sở vật chất" },
+    "/invoices": { "schema": "Invoice", "description": "Danh sách hóa đơn" }
+  }
+}

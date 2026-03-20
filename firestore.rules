@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: rooms
+    // Fields:
+    //   - number: string (required)
+    //   - type: string (single/double)
+    //   - status: string (available/occupied/maintenance)
+    //   - price: number
+    //   - lastElectricityMeter: number
+    //   - paymentStatus: string (paid/unpaid/debt)
+    //   - currentGuestId: string (optional)
+    //   - facilities: list (optional)
+    //
+    // Collection: guests
+    // Fields:
+    //   - name: string (required)
+    //   - idNumber: string (required)
+    //   - phone: string
+    //   - email: string
+    //   - idPhoto: string
+    //   - checkInDate: string
+    //
+    // Collection: facilities
+    // Fields:
+    //   - name: string (required)
+    //   - compensationPrice: number
+    //
+    // Collection: invoices
+    // Fields:
+    //   - roomId: string (required)
+    //   - month: number
+    //   - year: number
+    //   - electricityOld: number
+    //   - electricityNew: number
+    //   - electricityUsed: number
+    //   - electricityPrice: number
+    //   - waterPrice: number
+    //   - extraServices: list of maps
+    //   - totalPrice: number
+    //   - status: string (paid/unpaid)
+    //   - createdAt: timestamp/string
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "thanhtd1987@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // Domain Validators
+    function isValidRoom(data) {
+      return data.number is string && data.number.size() > 0 && data.number.size() < 20 &&
+             data.type in ['single', 'double'] &&
+             data.status in ['available', 'occupied', 'maintenance'] &&
+             data.price is number && data.price >= 0 &&
+             data.lastElectricityMeter is number &&
+             data.paymentStatus in ['paid', 'unpaid', 'debt'];
+    }
+
+    function isValidGuest(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() < 50;
+    }
+
+    function isValidFacility(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.compensationPrice is number && data.compensationPrice >= 0;
+    }
+
+    function isValidInvoice(data) {
+      return data.roomId is string &&
+             data.month is number && data.month >= 1 && data.month <= 12 &&
+             data.year is number &&
+             data.totalPrice is number && data.totalPrice >= 0 &&
+             data.status in ['paid', 'unpaid'];
+    }
+
+    // Rules
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidRoom(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /guests/{guestId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidGuest(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /facilities/{facilityId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidFacility(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidInvoice(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}
