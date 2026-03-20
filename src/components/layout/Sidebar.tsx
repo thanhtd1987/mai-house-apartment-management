@@ -1,23 +1,24 @@
 import { motion } from 'motion/react';
 import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText } from 'lucide-react';
 import { NavItem } from './NavItem';
+import { ROUTES, ROUTE_TITLES, RouteKey } from '../../constants';
 
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: RouteKey;
+  onTabChange: (tab: RouteKey) => void;
 }
 
-export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarProps) {
-  const navItems = [
-    { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: 'Tổng quan' },
-    { id: 'rooms', icon: <Bed size={20} />, label: 'Phòng & Trạng thái' },
-    { id: 'guests', icon: <Users size={20} />, label: 'Khách lưu trú' },
-    { id: 'facilities', icon: <Settings size={20} />, label: 'Cơ sở vật chất' },
-    { id: 'invoices', icon: <FileText size={20} />, label: 'Hóa đơn & Thanh toán' },
-  ];
+const NAV_ITEMS = [
+  { id: ROUTES.DASHBOARD, icon: <LayoutDashboard size={20} />, label: ROUTE_TITLES[ROUTES.DASHBOARD] },
+  { id: ROUTES.ROOMS, icon: <Bed size={20} />, label: ROUTE_TITLES[ROUTES.ROOMS] },
+  { id: ROUTES.GUESTS, icon: <Users size={20} />, label: ROUTE_TITLES[ROUTES.GUESTS] },
+  { id: ROUTES.FACILITIES, icon: <Settings size={20} />, label: ROUTE_TITLES[ROUTES.FACILITIES] },
+  { id: ROUTES.INVOICES, icon: <FileText size={20} />, label: ROUTE_TITLES[ROUTES.INVOICES] },
+] as const;
 
+export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarProps) {
   return (
     <motion.aside
       initial={false}
@@ -40,7 +41,7 @@ export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarPro
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
-        {navItems.map(item => (
+        {NAV_ITEMS.map(item => (
           <NavItem
             key={item.id}
             icon={item.icon}

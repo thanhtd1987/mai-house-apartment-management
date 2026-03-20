@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils';
+import { RouteKey } from '../../constants';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -7,9 +8,10 @@ interface NavItemProps {
   active: boolean;
   onClick: () => void;
   collapsed: boolean;
+  id: RouteKey;
 }
 
-export function NavItem({ icon, label, active, onClick, collapsed }: NavItemProps) {
+export function NavItem({ icon, label, active, onClick, collapsed, id }: NavItemProps) {
   return (
     <button
       onClick={onClick}

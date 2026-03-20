@@ -3,3 +3,4 @@ export * from './Modal';
 export * from './CropModal';
 export * from './Button';
 export * from './Input';
+export * from './ErrorBoundary';
