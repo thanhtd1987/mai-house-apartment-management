@@ -32,7 +32,7 @@ export function CropModal({ image, onCropComplete, onClose, aspectRatio = 3 / 4 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white p-6 rounded-3xl shadow-2xl w-full max-w-lg">
         <div className="relative h-80 w-full">

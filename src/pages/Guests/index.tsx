@@ -30,6 +30,27 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
     g.phone.includes(searchQuery)
   );
 
+  const resetImageStates = () => {
+    setScannedImage(null);
+    setCroppedFace(null);
+    setScannedData(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleOpenNewGuestModal = () => {
+    setEditingGuest(null);
+    resetImageStates();
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingGuest(null);
+    resetImageStates();
+  };
+
   const handleScanID = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -43,13 +64,13 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
   };
 
   useEffect(() => {
-    if (scannedData && scannedData.data) {
+    if (scannedData) {
       const form = document.getElementById('guest-form') as HTMLFormElement;
       if (form) {
-        (form.elements.namedItem('name') as HTMLInputElement).value = scannedData.data.name || '';
-        (form.elements.namedItem('idNumber') as HTMLInputElement).value = scannedData.data.idNumber || '';
-        (form.elements.namedItem('phone') as HTMLInputElement).value = scannedData.data.phone || '';
-        (form.elements.namedItem('email') as HTMLInputElement).value = scannedData.data.email || '';
+        (form.elements.namedItem('name') as HTMLInputElement).value = scannedData.name || '';
+        (form.elements.namedItem('idNumber') as HTMLInputElement).value = scannedData.idNumber || '';
+        (form.elements.namedItem('phone') as HTMLInputElement).value = scannedData.phone || '';
+        (form.elements.namedItem('email') as HTMLInputElement).value = scannedData.email || '';
       }
     }
   }, [scannedData]);
@@ -73,11 +94,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
         await addDoc(collection(db, 'guests'), guestData);
       }
 
-      setIsModalOpen(false);
-      setEditingGuest(null);
-      setScannedImage(null);
-      setCroppedFace(null);
-      setScannedData(null);
+      handleCloseModal();
     } catch (err) {
       handleFirestoreError(err, editingGuest ? OperationType.UPDATE : OperationType.CREATE, 'guests');
     }
@@ -108,7 +125,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
               className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-black transition-all w-64"
             />
           </div>
-          <Button onClick={() => { setEditingGuest(null); setIsModalOpen(true); }} icon={<Plus size={18} />}>
+          <Button onClick={handleOpenNewGuestModal} icon={<Plus size={18} />}>
             Đăng ký khách mới
           </Button>
         </div>
@@ -158,7 +175,11 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
                   <td className="px-6 py-4 text-right relative">
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg rounded-lg p-1 border border-gray-100">
                       <button
-                        onClick={() => { setEditingGuest(guest); setIsModalOpen(true); }}
+                        onClick={() => {
+                          setEditingGuest(guest);
+                          resetImageStates();
+                          setIsModalOpen(true);
+                        }}
                         className="text-gray-500 hover:bg-gray-100 p-2 rounded-lg transition-colors"
                       >
                         <Edit3 size={18} />
@@ -191,7 +212,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         title={editingGuest ? 'Chỉnh sửa thông tin khách' : 'Đăng ký khách lưu trú'}
         size="lg"
       >

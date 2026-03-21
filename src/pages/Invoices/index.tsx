@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit3, Trash2, X, Camera, Download, Loader2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Camera, Download, Loader2, FileText } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
 import { Room, Invoice } from '../../types';
@@ -23,6 +23,7 @@ export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
   const [confirmDelete, setConfirmDelete] = useState<Invoice | null>(null);
   const [meterImage, setMeterImage] = useState<string | null>(null);
   const [extraServices, setExtraServices] = useState<{ name: string; price: number }[]>([]);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const { isScanning: isProcessingOCR, scanMeter } = useOCR();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +137,12 @@ export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
         {invoices.map(invoice => {
           const room = rooms.find(r => r.id === invoice.roomId);
           return (
-            <div key={invoice.id} id={`invoice-card-${invoice.id}`} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative">
+            <div
+              key={invoice.id}
+              id={`invoice-card-${invoice.id}`}
+              className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative cursor-pointer"
+              onClick={() => setViewingInvoice(invoice)}
+            >
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-bold">Phòng {room?.number}</h3>
@@ -144,16 +150,26 @@ export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
                   {invoice.meterId && <p className="text-[10px] text-gray-400 font-bold uppercase">Mã ĐH: {invoice.meterId}</p>}
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-export">
-                  <button onClick={() => handleEditInvoice(invoice)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
-                    <Edit3 size={16} />
-                  </button>
+                  {invoice.status === 'unpaid' && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEditInvoice(invoice); }}
+                        className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(invoice); }}
+                        className="p-2 hover:bg-rose-50 rounded-lg text-rose-500"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                   <button
-                    onClick={() => setConfirmDelete(invoice)}
-                    className="p-2 hover:bg-rose-50 rounded-lg text-rose-500"
+                    onClick={(e) => { e.stopPropagation(); exportInvoice(invoice.id); }}
+                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                  <button onClick={() => exportInvoice(invoice.id)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
                     <Download size={16} />
                   </button>
                 </div>
@@ -177,7 +193,14 @@ export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
 
               {invoice.status === 'unpaid' && (
                 <button
-                  onClick={() => updateDoc(doc(db, 'invoices', invoice.id), { status: 'paid' })}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await updateDoc(doc(db, 'invoices', invoice.id), { status: 'paid' });
+                    const room = rooms.find(r => r.id === invoice.roomId);
+                    if (room) {
+                      await updateDoc(doc(db, 'rooms', room.id), { paymentStatus: 'paid' });
+                    }
+                  }}
                   className="w-full py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all"
                 >
                   Xác nhận đã thu
@@ -217,6 +240,140 @@ export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
               >
                 Xóa
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {viewingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setViewingInvoice(null)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-100 p-6 rounded-t-3xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-bold flex items-center gap-3">
+                    <FileText size={24} className="text-black" />
+                    Chi tiết hóa đơn
+                  </h3>
+                  {(() => {
+                    const room = rooms.find(r => r.id === viewingInvoice.roomId);
+                    return (
+                      <p className="text-sm text-gray-500 mt-1">Phòng {room?.number} - Tháng {viewingInvoice.month}/{viewingInvoice.year}</p>
+                    );
+                  })()}
+                </div>
+                <button
+                  onClick={() => setViewingInvoice(null)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Status Badge */}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Trạng thái thanh toán:</span>
+                <span className={cn(
+                  "px-4 py-2 rounded-xl font-bold text-sm",
+                  viewingInvoice.status === 'paid' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                )}>
+                  {viewingInvoice.status === 'paid' ? '✓ Đã thanh toán' : '○ Chưa thanh toán'}
+                </span>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="bg-gray-50 rounded-2xl p-6 space-y-4">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-gray-400">Thông tin hóa đơn</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 text-xs">Thời gian</p>
+                    <p className="font-bold">Tháng {viewingInvoice.month}/{viewingInvoice.year}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs">Mã đồng hồ</p>
+                    <p className="font-bold">{viewingInvoice.meterId || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cost Breakdown */}
+              <div className="bg-gray-50 rounded-2xl p-6 space-y-4">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-gray-400">Chi tiết thanh toán</h4>
+                <div className="space-y-3">
+                  {(() => {
+                    const room = rooms.find(r => r.id === viewingInvoice.roomId);
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">Tiền phòng</p>
+                            <p className="text-xs text-gray-400">Phòng {room?.number}</p>
+                          </div>
+                          <p className="font-bold">{formatCurrency(room?.price || 0)}</p>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">Tiền điện</p>
+                            <p className="text-xs text-gray-400">
+                              {viewingInvoice.electricityUsed} kWh ({viewingInvoice.electricityOld} → {viewingInvoice.electricityNew})
+                            </p>
+                          </div>
+                          <p className="font-bold">{formatCurrency(viewingInvoice.electricityPrice)}</p>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">Tiền nước</p>
+                            <p className="text-xs text-gray-400">Tiền cố định</p>
+                          </div>
+                          <p className="font-bold">{formatCurrency(viewingInvoice.waterPrice)}</p>
+                        </div>
+
+                        {viewingInvoice.extraServices.length > 0 && (
+                          <div className="pt-3 border-t border-gray-200">
+                            <p className="font-medium mb-2">Dịch vụ thêm:</p>
+                            {viewingInvoice.extraServices.map((service, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm pl-4 py-1">
+                                <span>{service.name}</span>
+                                <span className="font-bold">{formatCurrency(service.price)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="bg-black text-white rounded-2xl p-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-gray-400 font-bold uppercase">Tổng thanh toán</p>
+                    <p className="text-3xl font-black mt-1">{formatCurrency(viewingInvoice.totalPrice)}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      exportInvoice(viewingInvoice.id);
+                    }}
+                    className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+                  >
+                    <Download size={24} />
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
