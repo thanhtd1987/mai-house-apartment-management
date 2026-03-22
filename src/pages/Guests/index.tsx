@@ -384,6 +384,7 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
           onAssign={handleAssignRoomToGuest}
           availableRooms={rooms.filter(r => r.status === 'available')}
           guests={guests}
+          preselectedGuestId={selectedGuest.id}
         />
       )}
 

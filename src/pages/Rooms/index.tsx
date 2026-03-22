@@ -300,6 +300,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
           onAssign={handleAssignRoom}
           availableRooms={rooms.filter(r => r.status === 'available')}
           guests={guests}
+          preselectedRoomId={selectedRoom.id}
         />
       )}
 

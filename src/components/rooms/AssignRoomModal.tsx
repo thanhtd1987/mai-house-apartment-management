@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, Users, MapPin, Calendar, Check } from 'lucide-react';
 import { Room, Guest } from '../../types';
@@ -11,6 +11,8 @@ interface AssignRoomModalProps {
   onAssign: (guestId: string, roomId: string, checkInDate: string) => Promise<void>;
   availableRooms: Room[];
   guests: Guest[];
+  preselectedGuestId?: string;
+  preselectedRoomId?: string;
 }
 
 export function AssignRoomModal({
@@ -18,7 +20,9 @@ export function AssignRoomModal({
   onClose,
   onAssign,
   availableRooms,
-  guests
+  guests,
+  preselectedGuestId,
+  preselectedRoomId
 }: AssignRoomModalProps) {
   const [selectedGuest, setSelectedGuest] = useState<string>('');
   const [selectedRoom, setSelectedRoom] = useState<string>('');
@@ -54,6 +58,30 @@ export function AssignRoomModal({
 
   const canSubmit = selectedGuest && selectedRoom && checkInDate;
 
+  // Auto-select guest or room when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Auto-select guest if provided (opening from GuestCard)
+      if (preselectedGuestId) {
+        setSelectedGuest(preselectedGuestId);
+      }
+      // Auto-select room if provided (opening from RoomCard)
+      if (preselectedRoomId) {
+        setSelectedRoom(preselectedRoomId);
+      }
+    }
+  }, [isOpen, preselectedGuestId, preselectedRoomId]);
+
+  // Reset selections when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedGuest('');
+      setSelectedRoom('');
+      setGuestSearch('');
+      setCheckInDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -69,7 +97,7 @@ export function AssignRoomModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -89,7 +117,7 @@ export function AssignRoomModal({
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto max-h-[calc(90vh-140px)] space-y-8">
+        <div className="p-8 overflow-y-auto flex-1 space-y-8 min-h-0">
           {/* Step 1: Select Guest */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -234,7 +262,7 @@ export function AssignRoomModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 px-8 py-6 bg-slate-50 flex gap-3">
+        <div className="border-t border-slate-200 px-8 py-6 bg-slate-50 flex gap-3 flex-shrink-0">
           <Button
             onClick={onClose}
             variant="secondary"
