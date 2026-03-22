@@ -106,16 +106,24 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails }: Gues
             </div>
           ) : (
             <div className="bg-slate-50/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
-                  <MapPin size={18} />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-0.5">
+                      Chưa phân phòng
+                    </p>
+                    <p className="text-sm text-slate-400">Khách chưa được gán phòng</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-0.5">
-                    Chưa phân phòng
-                  </p>
-                  <p className="text-sm text-slate-400">Khách chưa được gán phòng</p>
-                </div>
+                <button
+                  onClick={() => onViewDetails?.(guest.id)}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  + Gán phòng <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           )}

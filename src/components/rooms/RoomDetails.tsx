@@ -225,7 +225,16 @@ export function RoomDetails({
                         <Users size={40} className="text-slate-400" />
                       </div>
                       <p className="text-slate-600 font-semibold text-lg mb-2">Phòng hiện đang trống</p>
-                      <p className="text-slate-500">Chưa có khách lưu trú</p>
+                      <p className="text-slate-500 mb-6">Chưa có khách lưu trú</p>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={onAddRoommate}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                      >
+                        <UserPlus size={18} />
+                        Gán khách ngay
+                      </motion.button>
                     </div>
                   )}
                 </div>
