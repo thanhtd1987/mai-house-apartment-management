@@ -1,21 +1,66 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit3, Trash2, ChevronRight } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
-import { Room, Facility } from '../../types';
+import { Room, Facility, Guest, RoomStatus } from '../../types';
 import { Modal, Button } from '../../components/common';
-import { cn, formatCurrency } from '../../utils';
+import { RoomCard } from '../../components/rooms/RoomCard';
+import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
 
 interface RoomsManagerProps {
   rooms: Room[];
   facilities: Facility[];
-  guests?: any[];
+  guests?: Guest[];
 }
 
-export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
+export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Partial<Room> | null>(null);
+  const [filters, setFilters] = useState<{ search: string; status: RoomStatus | 'all' }>({
+    search: '',
+    status: 'all'
+  });
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+      try {
+        await deleteDoc(doc(db, 'rooms', roomId));
+        console.log("Room deleted successfully:", roomId);
+      } catch (err) {
+        console.error("Error deleting room:", err);
+      }
+    }
+  };
+
+  const handleViewGuest = (guestId: string) => {
+    if (guestId === 'assign') {
+      // TODO: Open assign modal
+      alert('Tính năng gán khách sẽ được implement sau');
+    } else {
+      // TODO: Navigate to guest details
+      alert(`Navigate to guest ${guestId}`);
+    }
+  };
+
+  // Filter rooms
+  const filteredRooms = rooms.filter(room => {
+    const matchesStatus = filters.status === 'all' || room.status === filters.status;
+
+    const guest = guests.find(g => g.id === room.currentGuestId);
+    const matchesSearch = !filters.search ||
+      room.number.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (guest?.name.toLowerCase().includes(filters.search.toLowerCase()));
+
+    return matchesStatus && matchesSearch;
+  });
+
+  // Get guest for room
+  const getRoomGuest = (room: Room): Guest | undefined => {
+    return guests.find(g => g.id === room.currentGuestId);
+  };
+
+  const hasActiveFilters = filters.search || filters.status !== 'all';
 
   const handleSaveRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +93,16 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <p className="text-gray-500 text-sm">Quản lý danh sách {rooms.length} phòng trong hệ thống.</p>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Danh sách phòng</h2>
+          <p className="text-slate-500 text-sm mt-1">
+            {filteredRooms.length === rooms.length
+              ? `Quản lý ${rooms.length} phòng trong hệ thống`
+              : `Hiển thị ${filteredRooms.length} / ${rooms.length} phòng`}
+          </p>
+        </div>
         <Button
           onClick={() => { setEditingRoom({}); setIsModalOpen(true); }}
           icon={<Plus size={18} />}
@@ -58,84 +111,66 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.map(room => (
-          <div key={room.id} className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold">Phòng {room.number}</h3>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    {room.type === 'single' ? 'Phòng đơn (1-2 người)' : 'Phòng đôi (3-4 người)'}
-                  </p>
-                </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditingRoom(room); setIsModalOpen(true); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
-                    <Edit3 size={16} />
-                  </button>
-                  <button onClick={() => deleteDoc(doc(db, 'rooms', room.id))} className="p-2 hover:bg-rose-50 rounded-lg text-rose-500">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
+      {/* Filter Bar */}
+      <RoomFilterBar onFilterChange={setFilters} />
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 p-3 rounded-2xl">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Trạng thái</p>
-                  <div className="flex items-center gap-2">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      room.status === 'available' ? "bg-emerald-500" :
-                      room.status === 'occupied' ? "bg-blue-500" : "bg-gray-400"
-                    )} />
-                    <span className="text-xs font-bold capitalize">{room.status}</span>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-2xl">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Giá thuê</p>
-                  <span className="text-xs font-bold">{formatCurrency(room.price)}</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">Thanh toán:</span>
-                  <span className={cn(
-                    "font-bold",
-                    room.paymentStatus === 'paid' ? "text-emerald-600" :
-                    room.paymentStatus === 'unpaid' ? "text-rose-600" : "text-amber-600"
-                  )}>
-                    {room.paymentStatus === 'paid' ? 'Đã xong' : room.paymentStatus === 'unpaid' ? 'Chưa đóng' : 'Nợ cũ'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">Số điện cũ:</span>
-                  <span className="font-bold">{room.lastElectricityMeter} kWh</span>
-                </div>
-              </div>
+      {/* Room Grid */}
+      <AnimatePresence mode="popLayout">
+        {filteredRooms.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center py-16"
+          >
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-100 flex items-center justify-center">
+              <Plus size={40} className="text-slate-400" />
             </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">
+              {hasActiveFilters ? 'Không tìm thấy phòng nào' : 'Chưa có phòng nào'}
+            </h3>
+            <p className="text-slate-500 mb-6">
+              {hasActiveFilters
+                ? 'Thử thay đổi bộ lọc để tìm thấy phòng'
+                : 'Bắt đầu thêm phòng đầu tiên vào hệ thống'}
+            </p>
+            {hasActiveFilters ? (
+              <Button onClick={() => setFilters({ search: '', status: 'all' })} variant="secondary">
+                Xóa bộ lọc
+              </Button>
+            ) : (
+              <Button onClick={() => { setEditingRoom({}); setIsModalOpen(true); }} icon={<Plus size={18} />}>
+                Thêm phòng mới
+              </Button>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {filteredRooms.map(room => (
+                <motion.div
+                  key={room.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <RoomCard
+                    room={room}
+                    guest={getRoomGuest(room)}
+                    onEdit={(room) => { setEditingRoom(room); setIsModalOpen(true); }}
+                    onDelete={handleDeleteRoom}
+                    onViewGuest={handleViewGuest}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-              <div className="flex -space-x-2">
-                {room.facilities?.slice(0, 3).map(fid => (
-                  <div key={fid} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold">
-                    {facilities.find(f => f.id === fid)?.name.charAt(0)}
-                  </div>
-                ))}
-                {(room.facilities?.length || 0) > 3 && (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 border border-gray-200 flex items-center justify-center text-[10px] font-bold">
-                    +{(room.facilities?.length || 0) - 3}
-                  </div>
-                )}
-              </div>
-              <button className="text-xs font-bold text-gray-400 hover:text-black flex items-center gap-1">
-                Chi tiết <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
+      {/* Add/Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -144,16 +179,16 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
         <form onSubmit={handleSaveRoom} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Mã đồng hồ điện (No.)</label>
-              <input name="meterId" defaultValue={editingRoom?.meterId} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+              <label className="text-xs font-bold text-slate-400 uppercase">Mã đồng hồ điện (No.)</label>
+              <input name="meterId" defaultValue={editingRoom?.meterId} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Số phòng</label>
-              <input name="number" defaultValue={editingRoom?.number} required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+              <label className="text-xs font-bold text-slate-400 uppercase">Số phòng</label>
+              <input name="number" defaultValue={editingRoom?.number} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Loại phòng</label>
-              <select name="type" defaultValue={editingRoom?.type || 'single'} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black">
+              <label className="text-xs font-bold text-slate-400 uppercase">Loại phòng</label>
+              <select name="type" defaultValue={editingRoom?.type || 'single'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
                 <option value="single">Phòng đơn (1-2 người)</option>
                 <option value="double">Phòng đôi (3-4 người)</option>
               </select>
@@ -162,27 +197,27 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Trạng thái</label>
-              <select name="status" defaultValue={editingRoom?.status || 'available'} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black">
+              <label className="text-xs font-bold text-slate-400 uppercase">Trạng thái</label>
+              <select name="status" defaultValue={editingRoom?.status || 'available'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
                 <option value="available">Còn trống</option>
                 <option value="occupied">Đang ở</option>
                 <option value="maintenance">Đang sửa chữa</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Giá thuê (VND)</label>
-              <input name="price" type="number" defaultValue={editingRoom?.price} required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+              <label className="text-xs font-bold text-slate-400 uppercase">Giá thuê (VND)</label>
+              <input name="price" type="number" defaultValue={editingRoom?.price} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Số điện hiện tại</label>
-              <input name="lastElectricityMeter" type="number" defaultValue={editingRoom?.lastElectricityMeter || 0} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+              <label className="text-xs font-bold text-slate-400 uppercase">Số điện hiện tại</label>
+              <input name="lastElectricityMeter" type="number" defaultValue={editingRoom?.lastElectricityMeter || 0} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase">Thanh toán</label>
-              <select name="paymentStatus" defaultValue={editingRoom?.paymentStatus || 'paid'} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black">
+              <label className="text-xs font-bold text-slate-400 uppercase">Thanh toán</label>
+              <select name="paymentStatus" defaultValue={editingRoom?.paymentStatus || 'paid'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
                 <option value="paid">Đã thanh toán</option>
                 <option value="unpaid">Chưa thanh toán</option>
                 <option value="debt">Nợ cũ</option>
@@ -191,8 +226,8 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase">Cơ sở vật chất</label>
-            <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto p-2 bg-gray-50 rounded-xl">
+            <label className="text-xs font-bold text-slate-400 uppercase">Cơ sở vật chất</label>
+            <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-xl">
               {facilities.map(f => (
                 <label key={f.id} className="flex items-center gap-2 text-sm">
                   <input
@@ -200,7 +235,7 @@ export function RoomsManager({ rooms, facilities }: RoomsManagerProps) {
                     name="facilities"
                     value={f.id}
                     defaultChecked={editingRoom?.facilities?.includes(f.id)}
-                    className="rounded border-gray-300 text-black focus:ring-black"
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   {f.name}
                 </label>
