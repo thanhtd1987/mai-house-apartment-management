@@ -10,9 +10,11 @@ interface GuestCardProps {
   onEdit: (guest: Guest) => void;
   onDelete: (guestId: string) => void;
   onViewDetails?: (guestId: string) => void;
+  onAssignRoom?: (guestId: string) => void;
+  onCardClick?: () => void;
 }
 
-export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails }: GuestCardProps) {
+export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssignRoom, onCardClick }: GuestCardProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -29,7 +31,8 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails }: Gues
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ scale: 1.02, y: -4 }}
       transition={{ duration: 0.2 }}
-      className="group relative"
+      className="group relative cursor-pointer"
+      onClick={onCardClick}
     >
       {/* Glassmorphism Card */}
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
@@ -119,7 +122,10 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails }: Gues
                   </div>
                 </div>
                 <button
-                  onClick={() => onViewDetails?.(guest.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAssignRoom?.(guest.id);
+                  }}
                   className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
                 >
                   + Gán phòng <ChevronRight size={14} />

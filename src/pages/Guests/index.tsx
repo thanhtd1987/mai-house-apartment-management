@@ -132,6 +132,15 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
     }
   };
 
+  const handleAssignRoomForGuest = (guestId: string) => {
+    // Open assign modal directly for this guest
+    const guest = guests.find(g => g.id === guestId);
+    if (guest) {
+      setSelectedGuest(guest);
+      setShowAssignModal(true);
+    }
+  };
+
   const handleEditFromDetails = () => {
     setShowDetailsModal(false);
     if (selectedGuest) {
@@ -276,6 +285,8 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
                     onEdit={handleEditGuest}
                     onDelete={handleDeleteGuest}
                     onViewDetails={handleViewGuestDetails}
+                    onAssignRoom={handleAssignRoomForGuest}
+                    onCardClick={() => handleViewGuestDetails(guest.id)}
                   />
                 </motion.div>
               ))}

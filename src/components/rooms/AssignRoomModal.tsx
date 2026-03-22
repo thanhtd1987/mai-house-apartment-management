@@ -101,17 +101,17 @@ export function AssignRoomModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-6">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Gán phòng cho khách</h2>
-              <p className="text-purple-100 mt-1">Kết nối khách với phòng trống</p>
+              <h2 className="text-xl font-bold text-white">Gán phòng cho khách</h2>
+              <p className="text-purple-100 text-sm mt-0.5">Kết nối khách với phòng trống</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
             >
-              <span className="text-white text-2xl">×</span>
+              <span className="text-white text-xl">×</span>
             </button>
           </div>
         </div>

@@ -148,8 +148,15 @@ export function GuestDetails({
                       <Calendar size={20} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 font-bold uppercase">Ngày check-in</p>
-                      <p className="text-lg font-semibold text-slate-800">{formatDate(guest.checkInDate)}</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase">
+                        {room ? 'Ngày vào phòng' : 'Ngày đăng ký'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-800">
+                        {room && room.currentGuestId === guest.id ? formatDate(guest.checkInDate) : formatDate(guest.checkInDate)}
+                      </p>
+                      {!room && (
+                        <p className="text-xs text-slate-500 mt-1">Sẽ cập nhật khi gán phòng</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -295,8 +302,10 @@ export function GuestDetails({
                           <p className="font-bold text-blue-600">{room.price.toLocaleString()} VNĐ</p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 font-bold uppercase mb-1">Ngày bắt đầu</p>
-                          <p className="font-bold text-slate-800">{formatDate(guest.checkInDate)}</p>
+                          <p className="text-xs text-slate-500 font-bold uppercase mb-1">Ngày vào phòng</p>
+                          <p className="font-bold text-slate-800">
+                            {room.currentGuestId === guest.id ? formatDate(guest.checkInDate) : 'Chưa gán'}
+                          </p>
                         </div>
                       </div>
                     </div>
