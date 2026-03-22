@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit3, Trash2, X, Camera, Users, Search, ChevronRight } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Camera, Users, Search, UserCheck } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
-import { Guest } from '../../types';
+import { Guest, Room } from '../../types';
 import { Modal, Button, CropModal } from '../../components';
+import { GuestCard } from '../../components/guests/GuestCard';
 import { useOCR } from '../../hooks';
 import { cn, handleFirestoreError, OperationType } from '../../utils';
 
 interface GuestsManagerProps {
   guests: Guest[];
+  rooms: Room[];
 }
 
-export function GuestsManager({ guests }: GuestsManagerProps) {
+export function GuestsManager({ guests, rooms }: GuestsManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,95 +112,119 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
     }
   };
 
+  const handleEditGuest = (guest: Guest) => {
+    setEditingGuest(guest);
+    resetImageStates();
+    setIsModalOpen(true);
+  };
+
+  const handleViewGuestDetails = (guestId: string) => {
+    // TODO: Navigate to guest details or open modal
+    alert(`Xem chi tiết khách ${guestId} - Tính năng sắp triển khai`);
+  };
+
+  // Get room for guest
+  const getGuestRoom = (guest: Guest): Room | undefined => {
+    return rooms.find(r => r.currentGuestId === guest.id);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <p className="text-gray-500 text-sm">Quản lý danh sách {guests.length} khách lưu trú.</p>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Tìm khách..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-black transition-all w-64"
-            />
-          </div>
-          <Button onClick={handleOpenNewGuestModal} icon={<Plus size={18} />}>
-            Đăng ký khách mới
-          </Button>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Danh sách khách</h2>
+          <p className="text-slate-500 text-sm mt-1">
+            {filteredGuests.length === guests.length
+              ? `Quản lý ${guests.length} khách lưu trú`
+              : `Hiển thị ${filteredGuests.length} / ${guests.length} khách`}
+          </p>
         </div>
+        <Button
+          onClick={handleOpenNewGuestModal}
+          icon={<Plus size={18} />}
+        >
+          Đăng ký khách mới
+        </Button>
       </div>
 
-      {filteredGuests.length === 0 ? (
-        <div className="bg-white p-12 rounded-3xl border border-gray-200 text-center">
-          <Users className="mx-auto text-gray-300 mb-4" size={48} />
-          <h3 className="text-lg font-bold">Không tìm thấy khách</h3>
-          <p className="text-gray-500 text-sm">Thử tìm kiếm với từ khóa khác hoặc đăng ký khách mới.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm overflow-x-auto">
-          <table className="w-full text-left min-w-[600px]">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Khách hàng</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">CCCD/Passport</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Liên hệ</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Ngày vào</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredGuests.map(guest => (
-                <tr key={guest.id} className="hover:bg-gray-50 transition-colors group relative">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
-                        {guest.idPhoto ? (
-                          <img src={guest.idPhoto} alt={guest.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold">
-                            {guest.name.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                      <span className="font-bold">{guest.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-600">{guest.idNumber}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <p className="font-medium">{guest.phone}</p>
-                    <p className="text-gray-400 text-xs">{guest.email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium">{guest.checkInDate}</td>
-                  <td className="px-6 py-4 text-right relative">
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg rounded-lg p-1 border border-gray-100">
-                      <button
-                        onClick={() => {
-                          setEditingGuest(guest);
-                          resetImageStates();
-                          setIsModalOpen(true);
-                        }}
-                        className="text-gray-500 hover:bg-gray-100 p-2 rounded-lg transition-colors"
-                      >
-                        <Edit3 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGuest(guest.id)}
-                        className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tên, số CCCD, hoặc số điện thoại..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-12 pr-4 py-3 bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
+      {/* Guest Grid */}
+      <AnimatePresence mode="popLayout">
+        {filteredGuests.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center py-16"
+          >
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-100 flex items-center justify-center">
+              <UserCheck size={40} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">
+              {searchQuery ? 'Không tìm thấy khách nào' : 'Chưa có khách nào'}
+            </h3>
+            <p className="text-slate-500 mb-6">
+              {searchQuery
+                ? 'Thử tìm kiếm với từ khóa khác'
+                : 'Bắt đầu đăng ký khách đầu tiên vào hệ thống'}
+            </p>
+            {searchQuery ? (
+              <Button onClick={() => setSearchQuery('')} variant="secondary">
+                Xóa tìm kiếm
+              </Button>
+            ) : (
+              <Button onClick={handleOpenNewGuestModal} icon={<Plus size={18} />}>
+                Đăng ký khách mới
+              </Button>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {filteredGuests.map(guest => (
+                <motion.div
+                  key={guest.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <GuestCard
+                    guest={guest}
+                    room={getGuestRoom(guest)}
+                    onEdit={handleEditGuest}
+                    onDelete={handleDeleteGuest}
+                    onViewDetails={handleViewGuestDetails}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Crop Modal */}
       {showCropModal && scannedImage && (
         <CropModal
           image={scannedImage}
@@ -210,6 +236,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
         />
       )}
 
+      {/* Add/Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -219,7 +246,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
         <div className="space-y-6">
           <div className="flex gap-6">
             <div
-              className="w-24 h-32 bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 cursor-pointer"
+              className="w-24 h-32 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
               {croppedFace ? (
@@ -229,7 +256,7 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
               ) : scannedImage ? (
                 <img src={scannedImage} alt="Scanned ID" className="w-full h-full object-cover" />
               ) : (
-                <Camera className="text-gray-400" size={32} />
+                <Camera className="text-slate-400" size={32} />
               )}
             </div>
             <div className="flex-1 space-y-4">
@@ -259,22 +286,22 @@ export function GuestsManager({ guests }: GuestsManagerProps) {
           <form id="guest-form" onSubmit={handleSaveGuest} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase">Họ và tên</label>
-                <input name="name" defaultValue={editingGuest?.name} required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+                <label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label>
+                <input name="name" defaultValue={editingGuest?.name} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase">Số CCCD/Passport</label>
-                <input name="idNumber" defaultValue={editingGuest?.idNumber} required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+                <label className="text-xs font-bold text-slate-400 uppercase">Số CCCD/Passport</label>
+                <input name="idNumber" defaultValue={editingGuest?.idNumber} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase">Số điện thoại</label>
-                <input name="phone" defaultValue={editingGuest?.phone} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+                <label className="text-xs font-bold text-slate-400 uppercase">Số điện thoại</label>
+                <input name="phone" defaultValue={editingGuest?.phone} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
-                <input name="email" type="email" defaultValue={editingGuest?.email} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-black" />
+                <label className="text-xs font-bold text-slate-400 uppercase">Email</label>
+                <input name="email" type="email" defaultValue={editingGuest?.email} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
               </div>
             </div>
             <div className="pt-4">
