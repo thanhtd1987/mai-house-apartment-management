@@ -32,7 +32,7 @@ export default function App() {
       case ROUTES.ROOMS:
         return <RoomsManager rooms={rooms} facilities={facilities} guests={guests} />;
       case ROUTES.GUESTS:
-        return <GuestsManager guests={guests} rooms={rooms} />;
+        return <GuestsManager guests={guests} rooms={rooms} facilities={facilities} />;
       case ROUTES.FACILITIES:
         return <FacilitiesManager facilities={facilities} />;
       case ROUTES.INVOICES:

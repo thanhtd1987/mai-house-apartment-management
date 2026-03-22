@@ -10,9 +10,10 @@ interface RoomCardProps {
   onEdit: (room: Room) => void;
   onDelete: (roomId: string) => void;
   onViewGuest?: (guestId: string) => void;
+  onCardClick?: () => void;
 }
 
-export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest }: RoomCardProps) {
+export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onCardClick }: RoomCardProps) {
   const statusConfig = {
     available: { label: 'Trống', color: 'bg-slate-100 text-slate-700', dotColor: 'bg-slate-400' },
     occupied: { label: 'Đang ở', color: 'bg-green-100 text-green-700', dotColor: 'bg-green-500' },
@@ -26,6 +27,7 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest }: RoomCar
       whileHover={{ scale: 1.02, y: -4 }}
       transition={{ duration: 0.2 }}
       className="group relative"
+      onClick={onCardClick}
     >
       {/* Glassmorphism Card */}
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">

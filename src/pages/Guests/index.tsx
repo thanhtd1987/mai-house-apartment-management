@@ -3,18 +3,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Edit3, Trash2, X, Camera, Users, Search, UserCheck } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
-import { Guest, Room } from '../../types';
+import { Guest, Room, Facility } from '../../types';
 import { Modal, Button, CropModal } from '../../components';
-import { GuestCard } from '../../components/guests/GuestCard';
+import { GuestCard, GuestDetails } from '../../components/guests';
+import { AssignRoomModal } from '../../components/rooms';
 import { useOCR } from '../../hooks';
 import { cn, handleFirestoreError, OperationType } from '../../utils';
 
 interface GuestsManagerProps {
   guests: Guest[];
   rooms: Room[];
+  facilities?: Facility[];
 }
 
-export function GuestsManager({ guests, rooms }: GuestsManagerProps) {
+export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +24,9 @@ export function GuestsManager({ guests, rooms }: GuestsManagerProps) {
   const [croppedFace, setCroppedFace] = useState<string | null>(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [scannedData, setScannedData] = useState<any>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
 
   const { isScanning, scanIDCard } = useOCR();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,8 +124,63 @@ export function GuestsManager({ guests, rooms }: GuestsManagerProps) {
   };
 
   const handleViewGuestDetails = (guestId: string) => {
-    // TODO: Navigate to guest details or open modal
-    alert(`Xem chi tiết khách ${guestId} - Tính năng sắp triển khai`);
+    // Open details modal for this guest
+    const guest = guests.find(g => g.id === guestId);
+    if (guest) {
+      setSelectedGuest(guest);
+      setShowDetailsModal(true);
+    }
+  };
+
+  const handleEditFromDetails = () => {
+    setShowDetailsModal(false);
+    if (selectedGuest) {
+      handleEditGuest(selectedGuest);
+    }
+  };
+
+  const handleAssignFromDetails = () => {
+    setShowDetailsModal(false);
+    setShowAssignModal(true);
+  };
+
+  const handleCheckoutFromDetails = async () => {
+    if (selectedGuest && window.confirm('Bạn có chắc chắn muốn trả phòng?')) {
+      const room = rooms.find(r => r.currentGuestId === selectedGuest.id);
+      if (room) {
+        try {
+          await updateDoc(doc(db, 'rooms', room.id), {
+            currentGuestId: null,
+            status: 'available'
+          });
+          setShowDetailsModal(false);
+        } catch (err) {
+          console.error("Error checking out:", err);
+        }
+      }
+    }
+  };
+
+  const handleAssignRoomToGuest = async (guestId: string, roomId: string, checkInDate: string) => {
+    try {
+      // Update room with guest ID and change status to occupied
+      await updateDoc(doc(db, 'rooms', roomId), {
+        currentGuestId: guestId,
+        status: 'occupied'
+      });
+
+      // Update guest check-in date if needed
+      await updateDoc(doc(db, 'guests', guestId), {
+        checkInDate: checkInDate
+      });
+
+      console.log("Room assigned successfully:", roomId, "to guest:", guestId);
+      setShowAssignModal(false);
+      setSelectedGuest(null);
+    } catch (err) {
+      console.error("Error assigning room:", err);
+      throw err;
+    }
   };
 
   // Get room for guest
@@ -312,6 +372,36 @@ export function GuestsManager({ guests, rooms }: GuestsManagerProps) {
           </form>
         </div>
       </Modal>
+
+      {/* Assign Room Modal */}
+      {showAssignModal && selectedGuest && (
+        <AssignRoomModal
+          isOpen={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            setSelectedGuest(null);
+          }}
+          onAssign={handleAssignRoomToGuest}
+          availableRooms={rooms.filter(r => r.status === 'available')}
+          guests={guests}
+        />
+      )}
+
+      {/* Guest Details Modal */}
+      {showDetailsModal && selectedGuest && (
+        <GuestDetails
+          guest={selectedGuest}
+          room={getGuestRoom(selectedGuest)}
+          facilities={facilities}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedGuest(null);
+          }}
+          onAssignRoom={handleAssignFromDetails}
+          onEdit={handleEditFromDetails}
+          onCheckoutRoom={handleCheckoutFromDetails}
+        />
+      )}
     </div>
   );
 }

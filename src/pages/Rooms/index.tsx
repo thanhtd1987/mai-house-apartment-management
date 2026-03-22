@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../../services';
 import { Room, Facility, Guest, RoomStatus } from '../../types';
 import { Modal, Button } from '../../components/common';
-import { RoomCard } from '../../components/rooms/RoomCard';
+import { RoomCard, AssignRoomModal, RoomDetails } from '../../components/rooms';
 import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
 
 interface RoomsManagerProps {
@@ -21,6 +21,9 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
     search: '',
     status: 'all'
   });
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const handleDeleteRoom = async (roomId: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
@@ -33,13 +36,47 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
     }
   };
 
+  const handleAssignRoom = async (guestId: string, roomId: string, checkInDate: string) => {
+    try {
+      // Update room with guest ID and change status to occupied
+      await updateDoc(doc(db, 'rooms', roomId), {
+        currentGuestId: guestId,
+        status: 'occupied'
+      });
+
+      // Update guest check-in date if needed
+      await updateDoc(doc(db, 'guests', guestId), {
+        checkInDate: checkInDate
+      });
+
+      console.log("Room assigned successfully:", roomId, "to guest:", guestId);
+      setShowAssignModal(false);
+      setSelectedRoom(null);
+    } catch (err) {
+      console.error("Error assigning room:", err);
+      throw err;
+    }
+  };
+
+  const handleOpenAssignModal = (room: Room) => {
+    setSelectedRoom(room);
+    setShowAssignModal(true);
+  };
+
+  const handleOpenDetailsModal = (room: Room) => {
+    setSelectedRoom(room);
+    setShowDetailsModal(true);
+  };
+
   const handleViewGuest = (guestId: string) => {
     if (guestId === 'assign') {
-      // TODO: Open assign modal
-      alert('Tính năng gán khách sẽ được implement sau');
+      // Open assign modal for the currently selected room
+      if (selectedRoom) {
+        handleOpenAssignModal(selectedRoom);
+      }
     } else {
-      // TODO: Navigate to guest details
-      alert(`Navigate to guest ${guestId}`);
+      // Navigate to guest details
+      alert(`Navigate to guest ${guestId} - Tính năng sắp triển khai`);
     }
   };
 
@@ -162,6 +199,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
                     onEdit={(room) => { setEditingRoom(room); setIsModalOpen(true); }}
                     onDelete={handleDeleteRoom}
                     onViewGuest={handleViewGuest}
+                    onCardClick={() => handleOpenDetailsModal(room)}
                   />
                 </motion.div>
               ))}
@@ -250,6 +288,55 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
           </div>
         </form>
       </Modal>
+
+      {/* Assign Room Modal */}
+      {showAssignModal && selectedRoom && (
+        <AssignRoomModal
+          isOpen={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            setSelectedRoom(null);
+          }}
+          onAssign={handleAssignRoom}
+          availableRooms={rooms.filter(r => r.status === 'available')}
+          guests={guests}
+        />
+      )}
+
+      {/* Room Details Modal */}
+      {showDetailsModal && selectedRoom && (
+        <RoomDetails
+          room={selectedRoom}
+          guest={getRoomGuest(selectedRoom)}
+          facilities={facilities}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedRoom(null);
+          }}
+          onAddRoommate={() => {
+            setShowDetailsModal(false);
+            handleOpenAssignModal(selectedRoom);
+          }}
+          onTransferRoom={() => {
+            // TODO: Implement transfer room
+            alert('Tính năng chuyển phòng sẽ được implement sau');
+          }}
+          onCheckout={async () => {
+            if (window.confirm('Bạn có chắc chắn muốn trả phòng này?')) {
+              try {
+                await updateDoc(doc(db, 'rooms', selectedRoom.id), {
+                  currentGuestId: null,
+                  status: 'available'
+                });
+                setShowDetailsModal(false);
+                setSelectedRoom(null);
+              } catch (err) {
+                console.error("Error checking out:", err);
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
