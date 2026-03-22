@@ -68,14 +68,20 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssi
             {/* Action Buttons */}
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
-                onClick={() => onEdit(guest)}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onEdit(guest);
+                }}
                 className="p-2.5 hover:bg-purple-50 rounded-xl text-slate-500 hover:text-purple-600 transition-colors cursor-pointer"
                 aria-label="Chỉnh sửa khách"
               >
                 <Edit3 size={16} />
               </button>
               <button
-                onClick={() => onDelete(guest.id)}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onDelete(guest.id);
+                }}
                 className="p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
                 aria-label="Xóa khách"
               >
@@ -100,7 +106,10 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssi
                   </div>
                 </div>
                 <button
-                  onClick={() => onViewDetails?.(guest.id)}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onViewDetails?.(guest.id);
+                  }}
                   className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
                 >
                   Chi tiết <ChevronRight size={14} />
@@ -122,7 +131,7 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssi
                   </div>
                 </div>
                 <button
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     onAssignRoom?.(guest.id);
                   }}

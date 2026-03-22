@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit3, Trash2, X, Camera, Users, Search, UserCheck } from 'lucide-react';
+import { Plus, X, Search, UserCheck } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
 import { Guest, Room, Facility } from '../../types';
-import { Modal, Button, CropModal } from '../../components';
-import { GuestCard, GuestDetails } from '../../components/guests';
+import { Button, CropModal } from '../../components';
+import { GuestCard, GuestDetails, AddGuestModal } from '../../components/guests';
 import { AssignRoomModal } from '../../components/rooms';
 import { useOCR } from '../../hooks';
 import { cn, handleFirestoreError, OperationType } from '../../utils';
@@ -82,23 +82,17 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
     }
   }, [scannedData]);
 
-  const handleSaveGuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const guestData = {
-      name: formData.get('name') as string,
-      idNumber: formData.get('idNumber') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string,
-      idPhoto: croppedFace || scannedImage || editingGuest?.idPhoto || '',
-      checkInDate: editingGuest?.checkInDate || new Date().toISOString().split('T')[0]
+  const handleSaveGuest = async (guestData: Partial<Guest>) => {
+    const dataWithPhoto = {
+      ...guestData,
+      idPhoto: croppedFace || scannedImage || guestData.idPhoto || ''
     };
 
     try {
       if (editingGuest) {
-        await updateDoc(doc(db, 'guests', editingGuest.id), guestData);
+        await updateDoc(doc(db, 'guests', editingGuest.id), dataWithPhoto);
       } else {
-        await addDoc(collection(db, 'guests'), guestData);
+        await addDoc(collection(db, 'guests'), dataWithPhoto);
       }
 
       handleCloseModal();
@@ -308,81 +302,12 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
       )}
 
       {/* Add/Edit Modal */}
-      <Modal
+      <AddGuestModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingGuest ? 'Chỉnh sửa thông tin khách' : 'Đăng ký khách lưu trú'}
-        size="lg"
-      >
-        <div className="space-y-6">
-          <div className="flex gap-6">
-            <div
-              className="w-24 h-32 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {croppedFace ? (
-                <img src={croppedFace} alt="Cropped Face" className="w-full h-full object-cover" />
-              ) : editingGuest?.idPhoto ? (
-                <img src={editingGuest.idPhoto} alt="ID Photo" className="w-full h-full object-cover" />
-              ) : scannedImage ? (
-                <img src={scannedImage} alt="Scanned ID" className="w-full h-full object-cover" />
-              ) : (
-                <Camera className="text-slate-400" size={32} />
-              )}
-            </div>
-            <div className="flex-1 space-y-4">
-              <input type="file" ref={fileInputRef} onChange={handleScanID} className="hidden" accept="image/*" />
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="secondary"
-                className="w-full"
-                loading={isScanning}
-              >
-                {isScanning ? 'Đang quét thông tin...' : 'Tải lên ảnh CCCD/Passport'}
-              </Button>
-              {(scannedImage || editingGuest?.idPhoto) && (
-                <Button
-                  type="button"
-                  onClick={() => setShowCropModal(true)}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  Cắt ảnh mặt
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <form id="guest-form" onSubmit={handleSaveGuest} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label>
-                <input name="name" defaultValue={editingGuest?.name} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Số CCCD/Passport</label>
-                <input name="idNumber" defaultValue={editingGuest?.idNumber} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Số điện thoại</label>
-                <input name="phone" defaultValue={editingGuest?.phone} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Email</label>
-                <input name="email" type="email" defaultValue={editingGuest?.email} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500" />
-              </div>
-            </div>
-            <div className="pt-4">
-              <Button type="submit" size="lg" className="w-full">
-                {editingGuest ? 'Cập nhật thông tin' : 'Lưu thông tin khách'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </Modal>
+        onSave={handleSaveGuest}
+        guest={editingGuest}
+      />
 
       {/* Assign Room Modal */}
       {showAssignModal && selectedGuest && (

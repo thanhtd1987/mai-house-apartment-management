@@ -3,3 +3,4 @@ export { RoomFilterBar } from './RoomFilterBar';
 export { RoomDetails } from './RoomDetails';
 export { AssignRoomModal } from './AssignRoomModal';
 export { TransferRoomModal } from './TransferRoomModal';
+export { AddRoomModal } from './AddRoomModal';

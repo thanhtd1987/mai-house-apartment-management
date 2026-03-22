@@ -10,10 +10,11 @@ interface RoomCardProps {
   onEdit: (room: Room) => void;
   onDelete: (roomId: string) => void;
   onViewGuest?: (guestId: string) => void;
+  onAssignGuest?: () => void;
   onCardClick?: () => void;
 }
 
-export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onCardClick }: RoomCardProps) {
+export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignGuest, onCardClick }: RoomCardProps) {
   const statusConfig = {
     available: { label: 'Trống', color: 'bg-slate-100 text-slate-700', dotColor: 'bg-slate-400' },
     occupied: { label: 'Đang ở', color: 'bg-green-100 text-green-700', dotColor: 'bg-green-500' },
@@ -55,14 +56,20 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onCardCli
             {/* Action Buttons */}
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
-                onClick={() => onEdit(room)}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onEdit(room);
+                }}
                 className="p-2.5 hover:bg-blue-50 rounded-xl text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
                 aria-label="Chỉnh sửa phòng"
               >
                 <Edit3 size={16} />
               </button>
               <button
-                onClick={() => onDelete(room.id)}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onDelete(room.id);
+                }}
                 className="p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
                 aria-label="Xóa phòng"
               >
@@ -87,7 +94,10 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onCardCli
                   </div>
                 </div>
                 <button
-                  onClick={() => onViewGuest?.(guest.id)}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onViewGuest?.(guest.id);
+                  }}
                   className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-purple-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Xem hồ sơ <ChevronRight size={14} />
@@ -110,7 +120,10 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onCardCli
                 </div>
                 {room.status === 'available' && (
                   <button
-                    onClick={() => onViewGuest?.('assign')}
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      onAssignGuest?.();
+                    }}
                     className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
                   >
                     + Gán khách <ChevronRight size={14} />

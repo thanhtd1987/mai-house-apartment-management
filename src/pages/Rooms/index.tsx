@@ -4,8 +4,8 @@ import { Plus } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../../services';
 import { Room, Facility, Guest, RoomStatus } from '../../types';
-import { Modal, Button } from '../../components/common';
-import { RoomCard, AssignRoomModal, RoomDetails } from '../../components/rooms';
+import { Button } from '../../components/common';
+import { RoomCard, AssignRoomModal, RoomDetails, AddRoomModal } from '../../components/rooms';
 import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
 
 interface RoomsManagerProps {
@@ -99,20 +99,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
 
   const hasActiveFilters = filters.search || filters.status !== 'all';
 
-  const handleSaveRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const roomData = {
-      number: formData.get('number') as string,
-      meterId: formData.get('meterId') as string,
-      type: formData.get('type') as 'single' | 'double',
-      status: formData.get('status') as 'available' | 'occupied' | 'maintenance',
-      price: Number(formData.get('price')),
-      lastElectricityMeter: Number(formData.get('lastElectricityMeter')),
-      paymentStatus: formData.get('paymentStatus') as 'paid' | 'unpaid' | 'debt',
-      facilities: Array.from(formData.getAll('facilities')) as string[]
-    };
-
+  const handleSaveRoom = async (roomData: Partial<Room>) => {
     try {
       if (editingRoom?.id) {
         await updateDoc(doc(db, 'rooms', editingRoom.id), roomData);
@@ -199,6 +186,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
                     onEdit={(room) => { setEditingRoom(room); setIsModalOpen(true); }}
                     onDelete={handleDeleteRoom}
                     onViewGuest={handleViewGuest}
+                    onAssignGuest={() => handleOpenAssignModal(room)}
                     onCardClick={() => handleOpenDetailsModal(room)}
                   />
                 </motion.div>
@@ -209,85 +197,13 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
       </AnimatePresence>
 
       {/* Add/Edit Modal */}
-      <Modal
+      <AddRoomModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingRoom?.id ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
-      >
-        <form onSubmit={handleSaveRoom} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Mã đồng hồ điện (No.)</label>
-              <input name="meterId" defaultValue={editingRoom?.meterId} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Số phòng</label>
-              <input name="number" defaultValue={editingRoom?.number} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Loại phòng</label>
-              <select name="type" defaultValue={editingRoom?.type || 'single'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
-                <option value="single">Phòng đơn (1-2 người)</option>
-                <option value="double">Phòng đôi (3-4 người)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Trạng thái</label>
-              <select name="status" defaultValue={editingRoom?.status || 'available'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
-                <option value="available">Còn trống</option>
-                <option value="occupied">Đang ở</option>
-                <option value="maintenance">Đang sửa chữa</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Giá thuê (VND)</label>
-              <input name="price" type="number" defaultValue={editingRoom?.price} required className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Số điện hiện tại</label>
-              <input name="lastElectricityMeter" type="number" defaultValue={editingRoom?.lastElectricityMeter || 0} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Thanh toán</label>
-              <select name="paymentStatus" defaultValue={editingRoom?.paymentStatus || 'paid'} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500">
-                <option value="paid">Đã thanh toán</option>
-                <option value="unpaid">Chưa thanh toán</option>
-                <option value="debt">Nợ cũ</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase">Cơ sở vật chất</label>
-            <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-xl">
-              {facilities.map(f => (
-                <label key={f.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="facilities"
-                    value={f.id}
-                    defaultChecked={editingRoom?.facilities?.includes(f.id)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  {f.name}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <Button type="submit" size="lg" className="w-full">
-              {editingRoom?.id ? 'Cập nhật phòng' : 'Tạo phòng mới'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSave={handleSaveRoom}
+        room={editingRoom}
+        facilities={facilities}
+      />
 
       {/* Assign Room Modal */}
       {showAssignModal && selectedRoom && (
