@@ -1,12 +1,9 @@
 import { Search, LogOut } from 'lucide-react';
-import { ROUTE_TITLES, RouteKey } from '../../constants';
-import { useAuthStore } from '../../stores';
+import { ROUTE_TITLES } from '../../constants';
+import { useAuthStore, useAppStore } from '../../stores';
 
-interface HeaderProps {
-  activeTab: RouteKey;
-}
-
-export function Header({ activeTab }: HeaderProps) {
+export function Header() {
+  const { activeTab } = useAppStore();
   const { logout } = useAuthStore();
 
   const handleLogout = async () => {

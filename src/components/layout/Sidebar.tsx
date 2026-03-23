@@ -2,13 +2,7 @@ import { motion } from 'motion/react';
 import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText, DollarSign, Sparkles } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { ROUTES, ROUTE_TITLES, RouteKey } from '../../constants';
-
-interface SidebarProps {
-  isOpen: boolean;
-  onToggle: () => void;
-  activeTab: RouteKey;
-  onTabChange: (tab: RouteKey) => void;
-}
+import { useAppStore } from '../../stores';
 
 const NAV_ITEMS = [
   { id: ROUTES.DASHBOARD, icon: <LayoutDashboard size={20} />, label: ROUTE_TITLES[ROUTES.DASHBOARD] },
@@ -20,18 +14,19 @@ const NAV_ITEMS = [
   { id: ROUTES.SERVICES, icon: <Sparkles size={20} />, label: ROUTE_TITLES[ROUTES.SERVICES] },
 ] as const;
 
-export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarProps) {
+export function Sidebar() {
+  const { sidebarOpen, toggleSidebar, activeTab, setActiveTab } = useAppStore();
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isOpen ? 280 : 80 }}
+      animate={{ width: sidebarOpen ? 280 : 80 }}
       className="bg-white border-r border-gray-200 flex flex-col z-20"
     >
       <div className="p-6 flex items-center gap-3">
         <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shrink-0">
           <Home size={24} />
         </div>
-        {isOpen && (
+        {sidebarOpen && (
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -49,18 +44,18 @@ export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarPro
             icon={item.icon}
             label={item.label}
             active={activeTab === item.id}
-            onClick={() => onTabChange(item.id)}
-            collapsed={!isOpen}
+            onClick={() => setActiveTab(item.id)}
+            collapsed={!sidebarOpen}
           />
         ))}
       </nav>
 
       <div className="p-4 border-t border-gray-100">
         <button
-          onClick={onToggle}
+          onClick={toggleSidebar}
           className="w-full flex items-center justify-center p-2 hover:bg-gray-50 rounded-lg transition-colors"
         >
-          {isOpen ? <ChevronRight className="rotate-180" size={20} /> : <ChevronRight size={20} />}
+          {sidebarOpen ? <ChevronRight className="rotate-180" size={20} /> : <ChevronRight size={20} />}
         </button>
       </div>
     </motion.aside>

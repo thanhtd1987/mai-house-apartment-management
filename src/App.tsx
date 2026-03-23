@@ -18,8 +18,8 @@ import { db } from './services';
 export default function App() {
   const { user, loading } = useAuthStore();
   useAuth();
-  
-  const { activeTab, sidebarOpen, setActiveTab, toggleSidebar } = useAppStore();
+
+  const { activeTab } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
   
   if (user) {
@@ -103,15 +103,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="flex h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans overflow-hidden">
-        <Sidebar
-          isOpen={sidebarOpen}
-          onToggle={toggleSidebar}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <Sidebar />
 
         <main className="flex-1 overflow-y-auto relative">
-          <Header activeTab={activeTab} />
+          <Header />
 
           <div className="p-8 max-w-7xl mx-auto">
             <AnimatePresence mode="wait">
