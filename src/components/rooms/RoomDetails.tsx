@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2 } from 'lucide-react';
+import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2 } from 'lucide-react';
 import { Room, Guest, Facility } from '../../types';
-import { cn, formatCurrency, formatDate } from '../../utils';
+import { cn, formatCurrency, formatDate, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
 
 interface OccupancyHistoryEntry {
   guestId: string;
@@ -14,12 +14,14 @@ interface OccupancyHistoryEntry {
 
 interface RoomDetailsProps {
   room: Room;
-  guest?: Guest;
+  guests: Guest[]; // All guests from database
   facilities?: Facility[];
   onClose: () => void;
   onAddRoommate?: () => void;
   onTransferRoom?: () => void;
-  onCheckout?: () => void;
+  onCheckout?: (guestId?: string) => void; // Optional: specific guest or all
+  onChangeRepresentative?: (guestId: string) => void;
+  onEditGuest?: (guestId: string) => void;
   occupancyHistory?: OccupancyHistoryEntry[];
 }
 
@@ -27,12 +29,14 @@ type TabType = 'overview' | 'facilities' | 'history';
 
 export function RoomDetails({
   room,
-  guest,
+  guests,
   facilities = [],
   onClose,
   onAddRoommate,
   onTransferRoom,
   onCheckout,
+  onChangeRepresentative,
+  onEditGuest,
   occupancyHistory = []
 }: RoomDetailsProps) {
 
@@ -52,6 +56,13 @@ export function RoomDetails({
   };
 
   const config = statusConfig[room.status];
+
+  // Get all guests in this room with their details
+  const roomGuests = getRoomGuestsWithDetails(room, guests);
+  const representative = roomGuests.find(rg => rg.isRepresentative);
+  const otherGuests = roomGuests.filter(rg => !rg.isRepresentative);
+  const hasGuests = roomGuests.length > 0;
+  const hasRepresentative = roomHasRepresentative(room);
 
   return (
     <motion.div
@@ -73,8 +84,13 @@ export function RoomDetails({
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+              <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-3xl font-bold shadow-lg relative">
                 {room.number}
+                {hasGuests && (
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold">
+                    {roomGuests.length}
+                  </div>
+                )}
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-white">Phòng {room.number}</h2>
@@ -85,6 +101,11 @@ export function RoomDetails({
                   <span className="text-white/80 text-sm">
                     {room.type === 'single' ? 'Phòng đơn' : 'Phòng đôi'}
                   </span>
+                  {hasGuests && (
+                    <span className="text-white/80 text-sm">
+                      • {roomGuests.length} khách
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -163,63 +184,161 @@ export function RoomDetails({
                   </div>
                 </div>
 
-                {/* Current Occupants */}
+                {/* Current Occupants - Enhanced with Multiple Guests */}
                 <div className="bg-gradient-to-br from-purple-50/50 to-purple-100/30 backdrop-blur-sm rounded-3xl p-6 border border-purple-200/50">
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <Users size={20} className="text-purple-600" />
-                    Khách lưu trú hiện tại
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <Users size={20} className="text-purple-600" />
+                      Khách lưu trú hiện tại
+                      <span className="text-sm font-normal text-slate-500">
+                        ({roomGuests.length}/{room.type === 'single' ? 2 : 4})
+                      </span>
+                    </h3>
+                  </div>
 
-                  {guest ? (
+                  {hasGuests ? (
                     <div className="space-y-4">
-                      <div className="bg-white rounded-2xl p-5 border border-purple-100">
-                        <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-purple-500/30">
-                            {guest.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-bold text-slate-800 text-xl">{guest.name}</p>
-                            <p className="text-slate-500">{guest.phone}</p>
-                            <p className="text-sm text-purple-600 font-semibold mt-2 flex items-center gap-2">
-                              <Calendar size={14} />
-                              Check-in: {formatDate(guest.checkInDate)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      {/* Representative Card - Prominent */}
+                      {representative && (
+                        <motion.div
+                          layout
+                          className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl p-5 border-2 border-purple-300 shadow-lg"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
+                              {representative.guest.name.charAt(0)}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Crown size={18} className="text-purple-600" />
+                                <span className="text-xs font-bold text-purple-600 uppercase tracking-wide">
+                                  Người đại diện
+                                </span>
+                              </div>
+                              <h4 className="text-xl font-bold text-slate-800">
+                                {representative.guest.name}
+                              </h4>
+                              <div className="flex items-center gap-3 mt-2 text-sm text-slate-600">
+                                <span>📞 {representative.guest.phone}</span>
+                                <span>📧 {representative.guest.email}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2 text-sm text-purple-700 font-semibold">
+                                <Calendar size={14} />
+                                Check-in: {formatDate(representative.checkInDate)}
+                              </div>
 
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onAddRoommate}
-                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                              {otherGuests.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-purple-200">
+                                  <p className="text-xs text-purple-800">
+                                    💡 Người đại diện chịu trách nhiệm thanh toán và là contact chính của phòng
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => onEditGuest?.(representative.guestId)}
+                                className="p-2 hover:bg-white rounded-xl transition-colors cursor-pointer"
+                                title="Chỉnh sửa thông tin"
+                              >
+                                <Edit3 size={16} className="text-slate-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Other Guests */}
+                      {otherGuests.map(og => (
+                        <motion.div
+                          key={og.guestId}
+                          layout
+                          className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-purple-300 transition-colors"
                         >
-                          <UserPlus size={18} />
-                          Thêm người ở cùng
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onTransferRoom}
-                          className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
-                        >
-                          <ArrowRight size={18} />
-                          Chuyển phòng
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onCheckout}
-                          className="flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
-                        >
-                          <LogOut size={18} />
-                          Trả phòng
-                        </motion.button>
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold shrink-0">
+                              {og.guest.name.charAt(0)}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h5 className="font-semibold text-slate-800">{og.guest.name}</h5>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                <span>📞 {og.guest.phone}</span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar size={12} />
+                                  {formatDate(og.checkInDate)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => onChangeRepresentative?.(og.guestId)}
+                                className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                                title="Đặt làm người đại diện"
+                              >
+                                <Crown size={12} />
+                                Đại diện
+                              </button>
+                              <button
+                                onClick={() => onEditGuest?.(og.guestId)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                title="Chỉnh sửa"
+                              >
+                                <Edit3 size={14} className="text-slate-600" />
+                              </button>
+                              <button
+                                onClick={() => onCheckout?.(og.guestId)}
+                                className="p-1.5 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Checkout khách này"
+                              >
+                                <LogOut size={14} className="text-rose-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {/* Room Actions */}
+                      <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                        <p className="text-sm font-semibold text-slate-700">Thao tác phòng:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={onAddRoommate}
+                            className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                          >
+                            <UserPlus size={18} />
+                            Thêm khách
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={onTransferRoom}
+                            className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                          >
+                            <ArrowRight size={18} />
+                            Chuyển phòng
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => onCheckout?.()}
+                            className="flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                          >
+                            <LogOut size={18} />
+                            Trả toàn bộ phòng
+                          </motion.button>
+                        </div>
                       </div>
                     </div>
                   ) : (
+                    /* Empty State */
                     <div className="text-center py-12">
                       <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-200 flex items-center justify-center">
                         <Users size={40} className="text-slate-400" />

@@ -1,3 +1,10 @@
+export interface RoomGuest {
+  guestId: string;
+  isRepresentative: boolean;
+  checkInDate: string;
+  checkoutDate?: string;
+}
+
 export interface Room {
   id: string;
   number: string;
@@ -7,6 +14,9 @@ export interface Room {
   lastElectricityMeter: number;
   meterId?: string;
   paymentStatus: 'paid' | 'unpaid' | 'debt';
+  // NEW: Multiple guests per room with representative support
+  guests?: RoomGuest[];
+  // DEPRECATED: Kept for backward compatibility during migration
   currentGuestId?: string;
   facilities?: string[];
 }

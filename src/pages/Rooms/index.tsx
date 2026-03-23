@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../services';
 import { Room, Facility, Guest, RoomStatus } from '../../types';
 import { Button } from '../../components/common';
 import { RoomCard, AssignRoomModal, RoomDetails, AddRoomModal } from '../../components/rooms';
 import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
+import { getRoomGuestsWithDetails } from '../../utils';
 
 interface RoomsManagerProps {
   rooms: Room[];
@@ -36,20 +37,45 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
     }
   };
 
-  const handleAssignRoom = async (guestId: string, roomId: string, checkInDate: string) => {
+  const handleAssignRoom = async (guestIds: string[], roomId: string, checkInDate: string, representativeId: string) => {
     try {
-      // Update room with guest ID and change status to occupied
+      const room = rooms.find(r => r.id === roomId);
+
+      if (!room) {
+        throw new Error('Room not found');
+      }
+
+      // Check if any guests already exist in room
+      const existingGuestIds = room.guests?.map(g => g.guestId) || [];
+      const duplicateGuests = guestIds.filter(gid => existingGuestIds.includes(gid));
+
+      if (duplicateGuests.length > 0) {
+        alert(`${duplicateGuests.length} khách đã có trong phòng!`);
+        return;
+      }
+
+      // Prepare new guests array
+      const currentGuests = room.guests || [];
+      const newGuests = guestIds.map(guestId => ({
+        guestId,
+        isRepresentative: guestId === representativeId,
+        checkInDate
+      }));
+
+      // Update room with all guests
       await updateDoc(doc(db, 'rooms', roomId), {
-        currentGuestId: guestId,
+        guests: [...currentGuests, ...newGuests],
         status: 'occupied'
       });
 
-      // Update guest check-in date if needed
-      await updateDoc(doc(db, 'guests', guestId), {
-        checkInDate: checkInDate
-      });
+      // Update check-in dates for all guests
+      for (const guestId of guestIds) {
+        await updateDoc(doc(db, 'guests', guestId), {
+          checkInDate: checkInDate
+        });
+      }
 
-      console.log("Room assigned successfully:", roomId, "to guest:", guestId);
+      console.log(`Room assigned successfully: ${roomId} to ${guestIds.length} guests`);
       setShowAssignModal(false);
       setSelectedRoom(null);
     } catch (err) {
@@ -84,20 +110,99 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
   const filteredRooms = rooms.filter(room => {
     const matchesStatus = filters.status === 'all' || room.status === filters.status;
 
-    const guest = guests.find(g => g.id === room.currentGuestId);
+    // Get guests in room for search
+    const roomGuests = getRoomGuestsWithDetails(room, guests);
+    const guestNames = roomGuests.map(rg => rg.guest.name.toLowerCase()).join(' ');
+
     const matchesSearch = !filters.search ||
       room.number.toLowerCase().includes(filters.search.toLowerCase()) ||
-      (guest?.name.toLowerCase().includes(filters.search.toLowerCase()));
+      guestNames.includes(filters.search.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
 
-  // Get guest for room
+  // Get guest for room (for backward compatibility with RoomCard)
   const getRoomGuest = (room: Room): Guest | undefined => {
-    return guests.find(g => g.id === room.currentGuestId);
+    const roomGuests = getRoomGuestsWithDetails(room, guests);
+    // Return representative or first guest
+    return roomGuests.find(rg => rg.isRepresentative)?.guest || roomGuests[0]?.guest;
   };
 
   const hasActiveFilters = filters.search || filters.status !== 'all';
+
+  // Handle change representative
+  const handleChangeRepresentative = async (roomId: string, newRepresentativeId: string) => {
+    try {
+      const room = rooms.find(r => r.id === roomId);
+      if (!room || !room.guests) {
+        alert('Phòng không có khách!');
+        return;
+      }
+
+      // Update guests array to set new representative
+      const updatedGuests = room.guests.map(g => ({
+        ...g,
+        isRepresentative: g.guestId === newRepresentativeId
+      }));
+
+      await updateDoc(doc(db, 'rooms', roomId), {
+        guests: updatedGuests
+      });
+
+      console.log("Representative changed successfully:", roomId, newRepresentativeId);
+    } catch (err) {
+      console.error("Error changing representative:", err);
+      alert('Không thể thay đổi người đại diện!');
+    }
+  };
+
+  // Handle checkout specific guest
+  const handleCheckoutGuest = async (roomId: string, guestId: string) => {
+    try {
+      const room = rooms.find(r => r.id === roomId);
+      if (!room || !room.guests) {
+        alert('Phòng không có khách!');
+        return;
+      }
+
+      if (room.guests.length === 1) {
+        alert('Đây là khách cuối cùng. Vui lòng sử dụng "Trả toàn bộ phòng"!');
+        return;
+      }
+
+      // Check if checking out representative
+      const guestToCheckout = room.guests.find(g => g.guestId === guestId);
+      if (guestToCheckout?.isRepresentative) {
+        alert('Không thể checkout người đại diện. Hãy đổi người đại diện trước!');
+        return;
+      }
+
+      if (!window.confirm(`Bạn có chắc muốn checkout khách này khỏi phòng?`)) {
+        return;
+      }
+
+      // Remove guest from array
+      const updatedGuests = room.guests.filter(g => g.guestId !== guestId);
+
+      await updateDoc(doc(db, 'rooms', roomId), {
+        guests: updatedGuests
+      });
+
+      console.log("Guest checked out successfully:", guestId);
+      setShowDetailsModal(false);
+      setSelectedRoom(null);
+    } catch (err) {
+      console.error("Error checking out guest:", err);
+      alert('Không thể checkout khách!');
+    }
+  };
+
+  // Handle edit guest
+  const handleEditGuest = (guestId: string) => {
+    // Close details modal and navigate to guest editing
+    setShowDetailsModal(false);
+    alert(`Chuyển đến sửa thông tin khách ${guestId} - Tính năng sắp triển khai`);
+  };
 
   const handleSaveRoom = async (roomData: Partial<Room>) => {
     try {
@@ -214,7 +319,8 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
             setSelectedRoom(null);
           }}
           onAssign={handleAssignRoom}
-          availableRooms={rooms.filter(r => r.status === 'available')}
+          availableRooms={rooms.filter(r => r.status === 'available' || r.id === selectedRoom.id)}
+          allRooms={rooms}
           guests={guests}
           preselectedRoomId={selectedRoom.id}
         />
@@ -224,7 +330,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
       {showDetailsModal && selectedRoom && (
         <RoomDetails
           room={selectedRoom}
-          guest={getRoomGuest(selectedRoom)}
+          guests={guests}
           facilities={facilities}
           onClose={() => {
             setShowDetailsModal(false);
@@ -238,20 +344,28 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
             // TODO: Implement transfer room
             alert('Tính năng chuyển phòng sẽ được implement sau');
           }}
-          onCheckout={async () => {
-            if (window.confirm('Bạn có chắc chắn muốn trả phòng này?')) {
-              try {
-                await updateDoc(doc(db, 'rooms', selectedRoom.id), {
-                  currentGuestId: null,
-                  status: 'available'
-                });
-                setShowDetailsModal(false);
-                setSelectedRoom(null);
-              } catch (err) {
-                console.error("Error checking out:", err);
+          onCheckout={async (guestId) => {
+            if (guestId) {
+              // Checkout specific guest
+              await handleCheckoutGuest(selectedRoom.id, guestId);
+            } else {
+              // Checkout entire room
+              if (window.confirm('Bạn có chắc chắn muốn trả toàn bộ phòng này?')) {
+                try {
+                  await updateDoc(doc(db, 'rooms', selectedRoom.id), {
+                    guests: [],
+                    status: 'available'
+                  });
+                  setShowDetailsModal(false);
+                  setSelectedRoom(null);
+                } catch (err) {
+                  console.error("Error checking out:", err);
+                }
               }
             }
           }}
+          onChangeRepresentative={(guestId) => handleChangeRepresentative(selectedRoom.id, guestId)}
+          onEditGuest={handleEditGuest}
         />
       )}
     </div>
