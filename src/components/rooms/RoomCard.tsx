@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Edit3, Trash2, User, ChevronRight, Users } from 'lucide-react';
+import { Edit3, Trash2, User, ChevronRight, Users, FileText, Sparkles } from 'lucide-react';
 import { Room, Guest } from '../../types';
 import { cn, formatCurrency } from '../../utils';
 
@@ -11,10 +11,11 @@ interface RoomCardProps {
   onDelete: (roomId: string) => void;
   onViewGuest?: (guestId: string) => void;
   onAssignGuest?: () => void;
+  onCreateInvoice?: (room: Room) => void;
   onCardClick?: () => void;
 }
 
-export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignGuest, onCardClick }: RoomCardProps) {
+export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignGuest, onCreateInvoice, onCardClick }: RoomCardProps) {
   const statusConfig = {
     available: { label: 'Trống', color: 'bg-slate-100 text-slate-700', dotColor: 'bg-slate-400' },
     occupied: { label: 'Đang ở', color: 'bg-green-100 text-green-700', dotColor: 'bg-green-500' },
@@ -65,6 +66,27 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
               >
                 <Edit3 size={16} />
               </button>
+              {room.status === 'occupied' && onCreateInvoice && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onCreateInvoice(room);
+                  }}
+                  className="p-2.5 hover:bg-emerald-50 rounded-xl text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer relative"
+                  aria-label="Tạo hóa đơn"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 opacity-0 hover:opacity-100"
+                  >
+                    <Sparkles size={16} className="text-emerald-500" />
+                  </motion.div>
+                  <FileText size={16} />
+                </motion.button>
+              )}
               <button
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText } from 'lucide-react';
+import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText, DollarSign, Sparkles } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { ROUTES, ROUTE_TITLES, RouteKey } from '../../constants';
 
@@ -16,6 +16,8 @@ const NAV_ITEMS = [
   { id: ROUTES.GUESTS, icon: <Users size={20} />, label: ROUTE_TITLES[ROUTES.GUESTS] },
   { id: ROUTES.FACILITIES, icon: <Settings size={20} />, label: ROUTE_TITLES[ROUTES.FACILITIES] },
   { id: ROUTES.INVOICES, icon: <FileText size={20} />, label: ROUTE_TITLES[ROUTES.INVOICES] },
+  { id: ROUTES.UTILITY_PRICING, icon: <DollarSign size={20} />, label: ROUTE_TITLES[ROUTES.UTILITY_PRICING] },
+  { id: ROUTES.SERVICES, icon: <Sparkles size={20} />, label: ROUTE_TITLES[ROUTES.SERVICES] },
 ] as const;
 
 export function Sidebar({ isOpen, onToggle, activeTab, onTabChange }: SidebarProps) {
