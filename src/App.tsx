@@ -22,14 +22,12 @@ export default function App() {
   const { activeTab } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
   
-  if (user) {
-    useRooms();
-    useGuests();
-    useFacilities();
-    useInvoices();
-    useExtraServices();
-    useUtilityPricing();
-  }
+  useRooms();
+  useGuests();
+  useFacilities();
+  useInvoices();
+  useExtraServices();
+  useUtilityPricing();
 
   if (loading) {
     return <AppLoading />;
