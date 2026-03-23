@@ -307,6 +307,13 @@ export function GuestsManager({ guests, rooms, facilities = [] }: GuestsManagerP
         onClose={handleCloseModal}
         onSave={handleSaveGuest}
         guest={editingGuest}
+        fileInputRef={fileInputRef}
+        onScanID={handleScanID}
+        scannedImage={scannedImage}
+        croppedFace={croppedFace}
+        scannedData={scannedData}
+        isScanning={isScanning}
+        onOpenCropModal={() => setShowCropModal(true)}
       />
 
       {/* Assign Room Modal */}

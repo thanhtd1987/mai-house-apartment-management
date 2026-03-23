@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { X, User, FileText, Calendar, Camera, Check } from 'lucide-react';
 import { Guest } from '../../types';
@@ -9,11 +9,31 @@ interface AddGuestModalProps {
   onClose: () => void;
   onSave: (guestData: Partial<Guest>) => Promise<void>;
   guest?: Partial<Guest>;
+  // OCR & Photo props
+  fileInputRef?: React.RefObject<HTMLInputElement>;
+  onScanID?: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  scannedImage?: string | null;
+  croppedFace?: string | null;
+  scannedData?: { name?: string; idNumber?: string; phone?: string; email?: string } | null;
+  isScanning?: boolean;
+  onOpenCropModal?: () => void;
 }
 
 type GuestStep = 'photo' | 'basic' | 'confirm';
 
-export function AddGuestModal({ isOpen, onClose, onSave, guest }: AddGuestModalProps) {
+export function AddGuestModal({
+  isOpen,
+  onClose,
+  onSave,
+  guest,
+  fileInputRef,
+  onScanID,
+  scannedImage,
+  croppedFace,
+  scannedData,
+  isScanning = false,
+  onOpenCropModal
+}: AddGuestModalProps) {
   const [step, setStep] = useState<GuestStep>('photo');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -50,6 +70,29 @@ export function AddGuestModal({ isOpen, onClose, onSave, guest }: AddGuestModalP
     // Reset step to photo when modal opens with different guest
     setStep('photo');
   }, [guest, isOpen]);
+
+  // Update idPhoto when croppedFace or scannedImage changes
+  useEffect(() => {
+    if (croppedFace || scannedImage) {
+      setFormData((prev: typeof formData) => ({
+        ...prev,
+        idPhoto: croppedFace || scannedImage || prev.idPhoto
+      }));
+    }
+  }, [croppedFace, scannedImage]);
+
+  // Auto-populate form fields when scannedData is available
+  useEffect(() => {
+    if (scannedData) {
+      setFormData((prev: typeof formData) => ({
+        ...prev,
+        name: scannedData.name || prev.name,
+        idNumber: scannedData.idNumber || prev.idNumber,
+        phone: scannedData.phone || prev.phone,
+        email: scannedData.email || prev.email
+      }));
+    }
+  }, [scannedData]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -143,7 +186,10 @@ export function AddGuestModal({ isOpen, onClose, onSave, guest }: AddGuestModalP
 
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="w-48 h-48 rounded-3xl bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-dashed border-purple-300 flex items-center justify-center overflow-hidden">
+                  <div
+                    className="w-48 h-48 rounded-3xl bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-dashed border-purple-300 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-purple-50 transition-colors"
+                    onClick={() => fileInputRef?.current?.click()}
+                  >
                     {formData.idPhoto ? (
                       <img
                         src={formData.idPhoto}
@@ -159,11 +205,42 @@ export function AddGuestModal({ isOpen, onClose, onSave, guest }: AddGuestModalP
                   </div>
                   <button
                     type="button"
+                    onClick={() => fileInputRef?.current?.click()}
                     className="absolute bottom-4 right-4 p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg transition-colors cursor-pointer"
+                    disabled={isScanning}
                   >
                     <Camera size={20} />
                   </button>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onScanID}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef?.current?.click()}
+                  disabled={isScanning}
+                  className="w-full px-4 py-3 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Camera size={18} />
+                  {isScanning ? 'Đang quét thông tin...' : 'Tải lên ảnh CCCD/Passport'}
+                </button>
+                {(scannedImage || guest?.idPhoto) && onOpenCropModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenCropModal}
+                    className="w-full px-4 py-3 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-xl font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Camera size={18} />
+                    Cắt ảnh mặt
+                  </button>
+                )}
               </div>
 
               <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200">
