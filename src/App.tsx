@@ -4,7 +4,7 @@
  */
 
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth, useFirestoreData } from './hooks';
+import { useAuth, useRooms, useGuests, useFacilities, useInvoices, useExtraServices, useUtilityPricing } from './hooks';
 import { useAuthStore, useAppStore, useDataStore } from './stores';
 import { Sidebar, Header } from './components/layout';
 import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager } from './pages';
@@ -18,10 +18,18 @@ import { db } from './services';
 export default function App() {
   const { user, loading } = useAuthStore();
   useAuth();
-  useFirestoreData(user);
   
   const { activeTab, sidebarOpen, setActiveTab, toggleSidebar } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
+  
+  if (user) {
+    useRooms();
+    useGuests();
+    useFacilities();
+    useInvoices();
+    useExtraServices();
+    useUtilityPricing();
+  }
 
   if (loading) {
     return <AppLoading />;

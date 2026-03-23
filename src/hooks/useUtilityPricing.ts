@@ -1,17 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { useEffect, useCallback, useState } from 'react';
+import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services';
 import { UtilityPricing, UtilityPricingFormData, UtilityType } from '../types/utilityPricing';
+import { useDataStore } from '../stores';
 
 export function useUtilityPricing() {
-  const [utilityPricing, setUtilityPricing] = useState<UtilityPricing[]>([]);
+  const { utilityPricing, setUtilityPricing } = useDataStore();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-
     const q = query(
       collection(db, 'utilityPricing'),
       orderBy('effectiveDate', 'desc')
@@ -26,16 +24,17 @@ export function useUtilityPricing() {
         } as UtilityPricing));
         setUtilityPricing(pricing);
         setLoading(false);
+        setError(null);
       },
       (err) => {
         console.error('Error fetching utility pricing:', err);
-        setError('Failed to load utility pricing');
+        setError(err as Error);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [setUtilityPricing]);
 
   const getActivePricing = useCallback((type: UtilityType): UtilityPricing | undefined => {
     return utilityPricing.find(u => u.type === type && u.isActive);
