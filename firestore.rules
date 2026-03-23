@@ -86,6 +86,19 @@ service cloud.firestore {
              data.status in ['paid', 'unpaid'];
     }
 
+    function isValidExtraService(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.price is number && data.price >= 0 &&
+             data.category in ['laundry', 'cleaning', 'amenities', 'parking', 'food', 'other'] &&
+             data.isActive is bool;
+    }
+
+    function isValidUtilityPricing(data) {
+      return data.water.pricePerPerson is number && data.water.pricePerPerson >= 0 &&
+             data.electricity.pricePerKwh is number && data.electricity.pricePerKwh >= 0 &&
+             data.effectiveDate is string;
+    }
+
     // Rules
     match /rooms/{roomId} {
       allow read: if isAuthenticated();
@@ -114,6 +127,18 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
+    }
+
+    match /extraServices/{serviceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidExtraService(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /utilityPricing/{pricingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidUtilityPricing(request.resource.data);
+      allow delete: if isAdmin();
     }
   }
 }

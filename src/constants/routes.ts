@@ -4,7 +4,9 @@ export const ROUTES = {
   ROOMS: 'rooms',
   GUESTS: 'guests',
   FACILITIES: 'facilities',
-  INVOICES: 'invoices'
+  INVOICES: 'invoices',
+  UTILITY_PRICING: 'utility-pricing',
+  SERVICES: 'services'
 } as const;
 
 export type RouteKey = typeof ROUTES[keyof typeof ROUTES];
@@ -14,5 +16,7 @@ export const ROUTE_TITLES = {
   [ROUTES.ROOMS]: 'Phòng & Trạng thái',
   [ROUTES.GUESTS]: 'Khách lưu trú',
   [ROUTES.FACILITIES]: 'Cơ sở vật chất',
-  [ROUTES.INVOICES]: 'Hóa đơn & Thanh toán'
+  [ROUTES.INVOICES]: 'Hóa đơn & Thanh toán',
+  [ROUTES.UTILITY_PRICING]: 'Giá Dịch Vụ',
+  [ROUTES.SERVICES]: 'Dịch Vụ Thêm'
 } as const;

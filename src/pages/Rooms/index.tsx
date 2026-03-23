@@ -7,15 +7,20 @@ import { Room, Facility, Guest, RoomStatus } from '../../types';
 import { Button } from '../../components/common';
 import { RoomCard, AssignRoomModal, RoomDetails, AddRoomModal } from '../../components/rooms';
 import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
+import { QuickInvoiceModal } from '../../components/invoices/QuickInvoiceModal';
 import { getRoomGuestsWithDetails } from '../../utils';
+import { UtilityPricing } from '../../types/utilityPricing';
+import { ExtraServiceConfig } from '../../types/extraService';
 
 interface RoomsManagerProps {
   rooms: Room[];
   facilities: Facility[];
   guests?: Guest[];
+  utilityPricing?: UtilityPricing[];
+  extraServices?: ExtraServiceConfig[];
 }
 
-export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerProps) {
+export function RoomsManager({ rooms, facilities, guests = [], utilityPricing = [], extraServices = [] }: RoomsManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Partial<Room> | null>(null);
   const [filters, setFilters] = useState<{ search: string; status: RoomStatus | 'all' }>({
@@ -25,6 +30,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [invoiceModalRoom, setInvoiceModalRoom] = useState<Room | null>(null);
 
   const handleDeleteRoom = async (roomId: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
@@ -220,6 +226,49 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
     }
   };
 
+  const handleCreateInvoice = async (invoiceData: any) => {
+    try {
+      const docRef = await addDoc(collection(db, 'invoices'), {
+        ...invoiceData,
+        status: 'unpaid',
+        createdAt: new Date().toISOString()
+      });
+
+      // Update room's last electricity meter
+      if (invoiceData.roomId) {
+        await updateDoc(doc(db, 'rooms', invoiceData.roomId), {
+          lastElectricityMeter: invoiceData.electricityNew,
+          paymentStatus: 'unpaid'
+        });
+      }
+
+      console.log("Invoice created successfully:", docRef.id);
+      setInvoiceModalRoom(null);
+    } catch (err) {
+      console.error("Error creating invoice:", err);
+      throw err;
+    }
+  };
+
+  // Get utility pricing config
+  const getUtilityPricingConfig = () => {
+    const waterPricing = utilityPricing.find(u => u.type === 'water' && u.isActive);
+    const electricityPricing = utilityPricing.find(u => u.type === 'electricity' && u.isActive);
+
+    return {
+      water: {
+        pricePerPerson: waterPricing?.basePrice || 60000
+      },
+      electricity: {
+        pricePerKwh: electricityPricing?.basePrice || 3500
+      }
+    };
+  };
+
+  const getRoomGuestCount = (room: Room): number => {
+    return room.guests?.length || 0;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -292,6 +341,7 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
                     onDelete={handleDeleteRoom}
                     onViewGuest={handleViewGuest}
                     onAssignGuest={() => handleOpenAssignModal(room)}
+                    onCreateInvoice={(room) => setInvoiceModalRoom(room)}
                     onCardClick={() => handleOpenDetailsModal(room)}
                   />
                 </motion.div>
@@ -366,6 +416,19 @@ export function RoomsManager({ rooms, facilities, guests = [] }: RoomsManagerPro
           }}
           onChangeRepresentative={(guestId) => handleChangeRepresentative(selectedRoom.id, guestId)}
           onEditGuest={handleEditGuest}
+        />
+      )}
+
+      {/* Quick Invoice Modal */}
+      {invoiceModalRoom && (
+        <QuickInvoiceModal
+          isOpen={!!invoiceModalRoom}
+          onClose={() => setInvoiceModalRoom(null)}
+          room={invoiceModalRoom}
+          guestCount={getRoomGuestCount(invoiceModalRoom)}
+          onCreateInvoice={handleCreateInvoice}
+          utilityPricing={getUtilityPricingConfig()}
+          availableServices={extraServices}
         />
       )}
     </div>
