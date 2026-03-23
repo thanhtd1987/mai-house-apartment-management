@@ -97,7 +97,7 @@ export function addGuestToRoom(
   guestId: string,
   options: {
     isRepresentative?: boolean;
-    checkInDate: string;
+    checkInDate?: string;
   } = {}
 ): Omit<Room, 'id'> {
   const newGuest: RoomGuest = {

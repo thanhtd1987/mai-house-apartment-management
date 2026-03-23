@@ -3,19 +3,19 @@ import { motion } from 'motion/react';
 import { Droplets, Zap, Edit2, X, Save } from 'lucide-react';
 import { UtilityPricing } from '../../types/utilityPricing';
 import { formatCurrency } from '../../utils';
+import { useDataStore } from '../../stores';
 
 interface UtilityPricingPageProps {
-  utilityPricing: UtilityPricing[];
   onUpdatePricing: (id: string, data: any) => Promise<void>;
   onCreatePricing: (data: any) => Promise<void>;
   onDeletePricing: (id: string) => Promise<void>;
 }
 
 export function UtilityPricingPage({
-  utilityPricing,
   onUpdatePricing,
   onCreatePricing
 }: UtilityPricingPageProps) {
+  const { utilityPricing } = useDataStore();
   const [editingWater, setEditingWater] = useState(false);
   const [editingElectricity, setEditingElectricity] = useState(false);
   const [waterPrice, setWaterPrice] = useState(60000);

@@ -3,23 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, useFirestoreData } from './hooks';
+import { useAuthStore, useAppStore, useDataStore } from './stores';
 import { Sidebar, Header } from './components/layout';
 import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager } from './pages';
 import { ErrorBoundary, LoginPage, AppLoading } from './components';
-import { ROUTES, ROUTE_TITLES, RouteKey } from './constants';
+import { ROUTES } from './constants';
 import { UtilityPricingPage } from './pages/UtilityPricing';
 import { ServicesManager } from './pages/Services';
 import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './services';
 
 export default function App() {
-  const { user, loading } = useAuth();
-  const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useFirestoreData(user);
-  const [activeTab, setActiveTab] = useState<RouteKey>(ROUTES.DASHBOARD);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user, loading } = useAuthStore();
+  useAuth();
+  useFirestoreData(user);
+  
+  const { activeTab, sidebarOpen, setActiveTab, toggleSidebar } = useAppStore();
+  const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
 
   if (loading) {
     return <AppLoading />;
@@ -32,24 +34,17 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case ROUTES.DASHBOARD:
-        return <Dashboard rooms={rooms} invoices={invoices} />;
+        return <Dashboard />;
       case ROUTES.ROOMS:
-        return <RoomsManager
-          rooms={rooms}
-          facilities={facilities}
-          guests={guests}
-          utilityPricing={utilityPricing}
-          extraServices={extraServices}
-        />;
+        return <RoomsManager />;
       case ROUTES.GUESTS:
-        return <GuestsManager guests={guests} rooms={rooms} facilities={facilities} />;
+        return <GuestsManager />;
       case ROUTES.FACILITIES:
-        return <FacilitiesManager facilities={facilities} />;
+        return <FacilitiesManager />;
       case ROUTES.INVOICES:
-        return <InvoicesManager rooms={rooms} invoices={invoices} />;
+        return <InvoicesManager />;
       case ROUTES.UTILITY_PRICING:
         return <UtilityPricingPage
-          utilityPricing={utilityPricing}
           onUpdatePricing={async (id, data) => {
             try {
               await updateDoc(doc(db, 'utilityPricing', id), {
@@ -88,14 +83,12 @@ export default function App() {
         />;
       case ROUTES.SERVICES:
         return <ServicesManager
-          services={extraServices}
           onUpdateServices={() => {
-            // Force re-fetch by triggering useEffect
             console.log('Services updated');
           }}
         />;
       default:
-        return <Dashboard rooms={rooms} invoices={invoices} />;
+        return <Dashboard />;
     }
   };
 
@@ -103,8 +96,8 @@ export default function App() {
     <ErrorBoundary>
       <div className="flex h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans overflow-hidden">
         <Sidebar
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          isOpen={sidebarOpen}
+          onToggle={toggleSidebar}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />

@@ -9,18 +9,10 @@ import { RoomCard, AssignRoomModal, RoomDetails, AddRoomModal } from '../../comp
 import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
 import { QuickInvoiceModal } from '../../components/invoices/QuickInvoiceModal';
 import { getRoomGuestsWithDetails } from '../../utils';
-import { UtilityPricing } from '../../types/utilityPricing';
-import { ExtraServiceConfig } from '../../types/extraService';
+import { useDataStore } from '../../stores';
 
-interface RoomsManagerProps {
-  rooms: Room[];
-  facilities: Facility[];
-  guests?: Guest[];
-  utilityPricing?: UtilityPricing[];
-  extraServices?: ExtraServiceConfig[];
-}
-
-export function RoomsManager({ rooms, facilities, guests = [], utilityPricing = [], extraServices = [] }: RoomsManagerProps) {
+export function RoomsManager() {
+  const { rooms, facilities, guests, utilityPricing, extraServices } = useDataStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Partial<Room> | null>(null);
   const [filters, setFilters] = useState<{ search: string; status: RoomStatus | 'all' }>({

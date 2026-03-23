@@ -6,13 +6,14 @@ import { db } from '../../services';
 import { ExtraServiceConfig, ExtraServiceFormData, ServiceCategory, CATEGORY_CONFIG } from '../../types/extraService';
 import { ServiceCard, AddServiceModal } from '../../components/services';
 import { cn } from '../../utils';
+import { useDataStore } from '../../stores';
 
 interface ServicesManagerProps {
-  services: ExtraServiceConfig[];
   onUpdateServices: () => void;
 }
 
-export function ServicesManager({ services, onUpdateServices }: ServicesManagerProps) {
+export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
+  const { extraServices: services } = useDataStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<ExtraServiceConfig | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

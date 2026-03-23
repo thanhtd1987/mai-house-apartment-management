@@ -1,15 +1,12 @@
-import { Invoice, Room } from '../../types';
+import { useDataStore } from '../../stores';
 import { StatCard } from '../../components';
 import { formatCurrency } from '../../utils';
 import { DollarSign, Bed, CheckCircle2, AlertCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface DashboardProps {
-  rooms: Room[];
-  invoices: Invoice[];
-}
+export function Dashboard() {
+  const { rooms, invoices } = useDataStore();
 
-export function Dashboard({ rooms, invoices }: DashboardProps) {
   const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((acc, curr) => acc + curr.totalPrice, 0);
   const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
   const availableCount = rooms.filter(r => r.status === 'available').length;

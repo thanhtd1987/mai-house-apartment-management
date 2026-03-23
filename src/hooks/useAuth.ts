@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../services';
+import { useAuthStore } from '../stores';
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { setUser, setLoading } = useAuthStore();
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
@@ -14,6 +14,4 @@ export function useAuth() {
     });
     return () => unsubAuth();
   }, []);
-
-  return { user, loading };
 }

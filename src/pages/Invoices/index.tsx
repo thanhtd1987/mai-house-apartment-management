@@ -8,13 +8,10 @@ import { Modal, Button } from '../../components/common';
 import { useOCR } from '../../hooks';
 import { formatCurrency, calculateElectricity, cn } from '../../utils';
 import { toPng } from 'html-to-image';
+import { useDataStore } from '../../stores';
 
-interface InvoicesManagerProps {
-  rooms: Room[];
-  invoices: Invoice[];
-}
-
-export function InvoicesManager({ rooms, invoices }: InvoicesManagerProps) {
+export function InvoicesManager() {
+  const { rooms, invoices } = useDataStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);

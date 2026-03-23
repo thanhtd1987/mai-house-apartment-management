@@ -1,17 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../services';
 import { Room, Guest, Facility, Invoice } from '../types';
 import { UtilityPricing } from '../types/utilityPricing';
 import { ExtraServiceConfig } from '../types/extraService';
+import { useDataStore } from '../stores';
 
 export function useFirestoreData(user: any) {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [utilityPricing, setUtilityPricing] = useState<UtilityPricing[]>([]);
-  const [extraServices, setExtraServices] = useState<ExtraServiceConfig[]>([]);
+  const { setRooms, setGuests, setFacilities, setInvoices, setUtilityPricing, setExtraServices } = useDataStore();
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +60,4 @@ export function useFirestoreData(user: any) {
       unsubExtraServices();
     };
   }, [user]);
-
-  return { rooms, guests, facilities, invoices, utilityPricing, extraServices };
 }

@@ -5,12 +5,10 @@ import { db } from '../../services';
 import { Facility } from '../../types';
 import { Modal, Button } from '../../components/common';
 import { formatCurrency } from '../../utils';
+import { useDataStore } from '../../stores';
 
-interface FacilitiesManagerProps {
-  facilities: Facility[];
-}
-
-export function FacilitiesManager({ facilities }: FacilitiesManagerProps) {
+export function FacilitiesManager() {
+  const { facilities } = useDataStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFacility, setEditingFacility] = useState<Partial<Facility> | null>(null);
 
