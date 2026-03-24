@@ -415,6 +415,7 @@ export function RoomsManager() {
           }}
           onChangeRepresentative={(guestId) => handleChangeRepresentative(selectedRoom.id, guestId)}
           onEditGuest={handleEditGuest}
+          onCreateInvoice={(roomId) => setInvoiceModalRoom(rooms.find(r => r.id === roomId) || null)}
         />
       )}
 
@@ -423,7 +424,7 @@ export function RoomsManager() {
         <QuickInvoiceModal
           isOpen={!!invoiceModalRoom}
           onClose={() => setInvoiceModalRoom(null)}
-          room={invoiceModalRoom}
+          roomId={invoiceModalRoom?.id}
           guestCount={getRoomGuestCount(invoiceModalRoom)}
           onCreateInvoice={handleCreateInvoice}
           utilityPricing={getUtilityPricingConfig()}

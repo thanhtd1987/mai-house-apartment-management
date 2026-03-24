@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt } from 'lucide-react';
+import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt, FileText } from 'lucide-react';
 import { Room, Guest, Facility } from '../../types';
 import { cn, formatCurrency, formatDate, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
 import { RoomServiceManager } from './RoomServiceManager';
@@ -25,6 +25,7 @@ interface RoomDetailsProps {
   onChangeRepresentative?: (guestId: string) => void;
   onEditGuest?: (guestId: string) => void;
   occupancyHistory?: OccupancyHistoryEntry[];
+  onCreateInvoice?: (roomId: string) => void; // NEW: Create invoice for this room
 }
 
 type TabType = 'overview' | 'services' | 'facilities' | 'history';
@@ -39,7 +40,8 @@ export function RoomDetails({
   onCheckout,
   onChangeRepresentative,
   onEditGuest,
-  occupancyHistory = []
+  occupancyHistory = [],
+  onCreateInvoice
 }: RoomDetailsProps) {
 
   const { extraServices } = useDataStore();
@@ -338,6 +340,17 @@ export function RoomDetails({
                             <LogOut size={18} />
                             Trả toàn bộ phòng
                           </motion.button>
+                          {onCreateInvoice && room.status === 'occupied' && (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onCreateInvoice(room.id)}
+                              className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                            >
+                              <FileText size={18} />
+                              Tạo hóa đơn
+                            </motion.button>
+                          )}
                         </div>
                       </div>
                     </div>
