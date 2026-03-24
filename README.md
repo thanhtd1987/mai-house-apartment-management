@@ -18,3 +18,18 @@ View your app in AI Studio: https://ai.studio/apps/60c038fe-0004-494d-bf72-84c3b
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## 📚 Documentation
+
+- **[Skills & Agents Guide](docs/SKILLS_GUIDE.md)** - Comprehensive guide to using AI skills and agents
+- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Quick commands for common tasks
+- **[Design System](docs/DESIGN_SYSTEM.md)** - UI/UX design guidelines
+
+### Analysis Documents
+AI-generated analysis documents are stored in the `analysis/` directory (gitignored):
+- Product briefs
+- Market research
+- UX reviews
+- Requirements analysis
+
+See `analysis/README.md` for details.
