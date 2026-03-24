@@ -6,3 +6,4 @@ export * from './useGuests';
 export * from './useFacilities';
 export * from './useInvoices';
 export * from './useExtraServices';
+export * from './useRoomServiceUsages';

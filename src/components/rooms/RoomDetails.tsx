@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2 } from 'lucide-react';
+import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt } from 'lucide-react';
 import { Room, Guest, Facility } from '../../types';
 import { cn, formatCurrency, formatDate, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
+import { RoomServiceManager } from './RoomServiceManager';
+import { useDataStore } from '../../stores';
 
 interface OccupancyHistoryEntry {
   guestId: string;
@@ -25,7 +27,7 @@ interface RoomDetailsProps {
   occupancyHistory?: OccupancyHistoryEntry[];
 }
 
-type TabType = 'overview' | 'facilities' | 'history';
+type TabType = 'overview' | 'services' | 'facilities' | 'history';
 
 export function RoomDetails({
   room,
@@ -40,11 +42,13 @@ export function RoomDetails({
   occupancyHistory = []
 }: RoomDetailsProps) {
 
+  const { extraServices } = useDataStore();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showHistory, setShowHistory] = useState(false);
 
   const tabs: { key: TabType; label: string; icon: any }[] = [
     { key: 'overview', label: 'Tổng quan', icon: Home },
+    { key: 'services', label: 'Dịch vụ thêm', icon: Receipt },
     { key: 'facilities', label: 'Cơ sở vật chất', icon: Building2 },
     { key: 'history', label: 'Lịch sử', icon: History }
   ];
@@ -357,6 +361,21 @@ export function RoomDetails({
                     </div>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'services' && (
+              <motion.div
+                key="services"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <RoomServiceManager
+                  roomId={room.id}
+                  extraServices={extraServices}
+                />
               </motion.div>
             )}
 

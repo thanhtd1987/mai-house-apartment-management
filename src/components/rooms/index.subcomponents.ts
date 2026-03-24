@@ -1,7 +1,9 @@
 export { AssignRoomModal } from './AssignRoomModal';
+export { AssignRoomsToGuestModal } from './AssignRoomsToGuestModal';
 export { AssignModalHeader } from './AssignModalHeader';
 export { AssignModalFooter } from './AssignModalFooter';
 export { RoomInfoCard } from './RoomInfoCard';
+export { RoomSelectionCard } from './RoomSelectionCard';
 export { ExistingGuestsList } from './ExistingGuestsList';
 export { GuestSearch } from './GuestSearch';
 export { GuestCard as GuestCardSelector } from './GuestCardSelector';

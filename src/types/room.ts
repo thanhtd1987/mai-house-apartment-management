@@ -9,6 +9,7 @@ export interface Room {
   id: string;
   number: string;
   type: 'single' | 'double';
+  capacity: number;
   status: 'available' | 'occupied' | 'maintenance';
   price: number;
   lastElectricityMeter: number;

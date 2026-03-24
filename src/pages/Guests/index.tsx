@@ -6,7 +6,7 @@ import { db } from '../../services';
 import { Guest, Room, Facility } from '../../types';
 import { Button, CropModal } from '../../components';
 import { GuestCard, GuestDetails, AddGuestModal } from '../../components/guests';
-import { AssignRoomModal } from '../../components/rooms';
+import { AssignRoomsToGuestModal } from '../../components/rooms';
 import { useOCR } from '../../hooks';
 import { cn, handleFirestoreError, OperationType } from '../../utils';
 import { useDataStore } from '../../stores';
@@ -190,6 +190,52 @@ export function GuestsManager() {
     }
   };
 
+  const handleAssignRoomsToGuest = async (guestId: string, roomIds: string[], checkInDate: string) => {
+    try {
+      // Assign the guest to multiple rooms
+      for (const roomId of roomIds) {
+        const room = rooms.find(r => r.id === roomId);
+        if (!room) continue;
+
+        // Get current guests in room
+        const currentGuests = room.guests || [];
+
+        // Check if guest already exists in this room
+        const guestExists = currentGuests.some(g => g.guestId === guestId);
+
+        if (!guestExists) {
+          // Add guest to room
+          // If room is empty, this guest becomes the representative
+          const isRepresentative = currentGuests.length === 0;
+
+          await updateDoc(doc(db, 'rooms', roomId), {
+            guests: [
+              ...currentGuests,
+              {
+                guestId,
+                isRepresentative,
+                checkInDate
+              }
+            ],
+            status: 'occupied'
+          });
+        }
+      }
+
+      // Update guest check-in date
+      await updateDoc(doc(db, 'guests', guestId), {
+        checkInDate: checkInDate
+      });
+
+      console.log("Rooms assigned successfully:", roomIds, "to guest:", guestId);
+      setShowAssignModal(false);
+      setSelectedGuest(null);
+    } catch (err) {
+      console.error("Error assigning rooms to guest:", err);
+      throw err;
+    }
+  };
+
   // Get room for guest
   const getGuestRoom = (guest: Guest): Room | undefined => {
     return rooms.find(r => r.currentGuestId === guest.id);
@@ -320,17 +366,16 @@ export function GuestsManager() {
         onOpenCropModal={() => setShowCropModal(true)}
       />
 
-      {/* Assign Room Modal */}
+      {/* Assign Rooms to Guest Modal */}
       {showAssignModal && selectedGuest && (
-        <AssignRoomModal
+        <AssignRoomsToGuestModal
           isOpen={showAssignModal}
           onClose={() => {
             setShowAssignModal(false);
             setSelectedGuest(null);
           }}
-          onAssign={handleAssignRoomToGuest}
-          availableRooms={rooms.filter(r => r.status === 'available')}
-          allRooms={rooms}
+          onAssign={handleAssignRoomsToGuest}
+          rooms={rooms}
           guests={guests}
           preselectedGuestId={selectedGuest.id}
         />

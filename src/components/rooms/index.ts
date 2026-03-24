@@ -1,6 +1,9 @@
 export { RoomCard } from './RoomCard';
 export { RoomFilterBar } from './RoomFilterBar';
 export { RoomDetails } from './RoomDetails';
+export { RoomServiceManager } from './RoomServiceManager';
 export { AssignRoomModal } from './AssignRoomModal';
+export { AssignRoomsToGuestModal } from './AssignRoomsToGuestModal';
+export { RoomSelectionCard } from './RoomSelectionCard';
 export { TransferRoomModal } from './TransferRoomModal';
 export { AddRoomModal } from './AddRoomModal';

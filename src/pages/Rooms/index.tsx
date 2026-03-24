@@ -10,6 +10,7 @@ import { RoomFilterBar } from '../../components/rooms/RoomFilterBar';
 import { QuickInvoiceModal } from '../../components/invoices/QuickInvoiceModal';
 import { getRoomGuestsWithDetails } from '../../utils';
 import { useDataStore } from '../../stores';
+import { getCurrentMonth } from '../../types/roomServiceUsage';
 
 export function RoomsManager() {
   const { rooms, facilities, guests, utilityPricing, extraServices } = useDataStore();
@@ -234,7 +235,13 @@ export function RoomsManager() {
         });
       }
 
+      // Clear room service usage for this month after invoice is created
+      const currentMonth = getCurrentMonth();
+      const usageId = `${invoiceData.roomId}_${currentMonth}`;
+      await deleteDoc(doc(db, 'roomServiceUsages', usageId));
+
       console.log("Invoice created successfully:", docRef.id);
+      console.log("Cleared service usage for room:", invoiceData.roomId, "month:", currentMonth);
       setInvoiceModalRoom(null);
     } catch (err) {
       console.error("Error creating invoice:", err);

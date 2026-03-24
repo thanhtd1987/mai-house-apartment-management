@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Camera, Loader2, ChevronDown, ChevronUp, Info, Sparkles, Plus, Minus, Trash2 } from 'lucide-react';
-import { Room } from '../../types';
+import { Room, ExtraService } from '../../types';
 import { cn, formatCurrency, calculateElectricity } from '../../utils';
-import { useOCR } from '../../hooks';
+import { useOCR, useRoomServiceUsages } from '../../hooks';
 import { AddInvoiceServiceModal } from './AddInvoiceServiceModal';
 import { ExtraServiceConfig } from '../../types/extraService';
+import { getCurrentMonth } from '../../types/roomServiceUsage';
 
 interface InvoiceService {
   name: string;
   price: number;
   quantity: number;
+  serviceId?: string; // Optional: link to extraService config
+  isPaid?: boolean; // Optional: payment status
 }
 
 interface QuickInvoiceModalProps {
@@ -41,7 +44,7 @@ export interface InvoiceData {
   electricityNew: number;
   waterPrice: number;
   electricityPrice: number;
-  extraServices: { name: string; price: number }[];
+  extraServices: ExtraService[];
   totalPrice: number;
 }
 
@@ -61,16 +64,43 @@ export function QuickInvoiceModal({
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
 
+  // Load monthly service usages
+  const { services: monthlyServiceUsages, loading: loadingServices } = useRoomServiceUsages({
+    roomId: room?.id || '',
+    month: room ? getCurrentMonth() : undefined
+  });
+
   const { isScanning: isProcessingOCR, scanMeter } = useOCR();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Load services from monthly usages when modal opens
   useEffect(() => {
-    if (room && isOpen) {
+    const loadServicesFromUsages = async () => {
+      if (!room || !isOpen) return;
+
       setElectricityNew(room.lastElectricityMeter);
       setMeterImage(null);
-      setSelectedServices([]);
-    }
-  }, [room, isOpen]);
+
+      // Auto-load services from monthly usage (including payment status)
+      if (monthlyServiceUsages.length > 0 && availableServices.length > 0) {
+        const services: InvoiceService[] = monthlyServiceUsages.map(usage => {
+          const serviceConfig = availableServices.find(s => s.id === usage.serviceId);
+          return {
+            name: serviceConfig?.name || 'Dịch vụ',
+            price: serviceConfig?.price || 0,
+            quantity: usage.quantity,
+            serviceId: usage.serviceId,
+            isPaid: usage.status === 'paid' // Track payment status
+          };
+        });
+        setSelectedServices(services);
+      } else {
+        setSelectedServices([]);
+      }
+    };
+
+    loadServicesFromUsages();
+  }, [room, isOpen, monthlyServiceUsages, availableServices]);
 
   if (!room || !isOpen) return null;
 
@@ -85,7 +115,11 @@ export function QuickInvoiceModal({
 
   const waterPrice = calculateWaterPrice();
   const electricityPrice = utilityPricing ? electricityUsed * utilityPricing.electricity.pricePerKwh : calculateElectricity(electricityUsed);
-  const servicesTotal = selectedServices.reduce((acc: number, service: InvoiceService) => acc + (service.price * service.quantity), 0);
+
+  // Calculate services total - CHỈ tính UNPAID services
+  const servicesTotal = selectedServices
+    .filter((s: InvoiceService) => !s.isPaid) // Bỏ qua paid services
+    .reduce((acc: number, service: InvoiceService) => acc + (service.price * service.quantity), 0);
   const totalPrice = room.price + electricityPrice + waterPrice + servicesTotal;
 
   const handleOCRMeter = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +140,15 @@ export function QuickInvoiceModal({
 
     setIsSubmitting(true);
     try {
+      // Convert selected services to ExtraService format
+      const extraServices: ExtraService[] = selectedServices.map((s: InvoiceService) => ({
+        serviceId: s.serviceId || '',
+        serviceName: s.name,
+        unitPrice: s.price,
+        quantity: s.quantity,
+        totalPrice: s.price * s.quantity
+      }));
+
       await onCreateInvoice({
         roomId: room.id,
         meterId: room.meterId,
@@ -115,7 +158,7 @@ export function QuickInvoiceModal({
         electricityNew,
         waterPrice,
         electricityPrice,
-        extraServices: selectedServices.map(s => ({ name: s.name, price: s.price * s.quantity })),
+        extraServices,
         totalPrice
       });
       onClose();
@@ -311,35 +354,73 @@ export function QuickInvoiceModal({
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 20 }}
-                              className="flex items-center gap-2 p-3 bg-white border-2 border-emerald-100 rounded-xl"
+                              className={cn(
+                                "flex items-center gap-2 p-3 bg-white border-2 rounded-xl transition-all",
+                                service.isPaid ? "border-green-200 opacity-75" : "border-emerald-100"
+                              )}
                             >
                               <div className="flex-1">
-                                <p className="font-bold text-gray-900 text-sm">{service.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className={cn(
+                                    "font-bold text-sm",
+                                    service.isPaid ? "text-gray-500 line-through" : "text-gray-900"
+                                  )}>
+                                    {service.name}
+                                  </p>
+                                  {service.isPaid && (
+                                    <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 font-semibold rounded-full">
+                                      Đã chi trả
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-gray-400">{service.quantity} lần</p>
                               </div>
                               <div className="flex items-center gap-1">
                                 <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
+                                  whileHover={{ scale: service.isPaid ? 1 : 1.1 }}
+                                  whileTap={{ scale: service.isPaid ? 1 : 0.9 }}
                                   onClick={() => updateServiceQuantity(index, -1)}
-                                  className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200"
+                                  disabled={service.isPaid}
+                                  className={cn(
+                                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                                    service.isPaid
+                                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  )}
                                 >
                                   <Minus size={14} />
                                 </motion.button>
-                                <span className="w-8 text-center font-bold text-emerald-600">{service.quantity}</span>
+                                <span className={cn(
+                                  "w-8 text-center font-bold",
+                                  service.isPaid ? "text-gray-400" : "text-emerald-600"
+                                )}>
+                                  {service.quantity}
+                                </span>
                                 <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
+                                  whileHover={{ scale: service.isPaid ? 1 : 1.1 }}
+                                  whileTap={{ scale: service.isPaid ? 1 : 0.9 }}
                                   onClick={() => updateServiceQuantity(index, 1)}
-                                  className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700"
+                                  disabled={service.isPaid}
+                                  className={cn(
+                                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                                    service.isPaid
+                                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                  )}
                                 >
                                   <Plus size={14} />
                                 </motion.button>
                                 <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
+                                  whileHover={{ scale: service.isPaid ? 1 : 1.1 }}
+                                  whileTap={{ scale: service.isPaid ? 1 : 0.9 }}
                                   onClick={() => removeService(index)}
-                                  className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 ml-2"
+                                  disabled={service.isPaid}
+                                  className={cn(
+                                    "w-8 h-8 rounded-lg flex items-center justify-center ml-2",
+                                    service.isPaid
+                                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                      : "bg-red-100 text-red-600 hover:bg-red-200"
+                                  )}
                                 >
                                   <Trash2 size={14} />
                                 </motion.button>
@@ -427,10 +508,22 @@ export function QuickInvoiceModal({
                               {selectedServices.map((service, index) => (
                                 <div key={index} className="flex justify-between items-center text-sm">
                                   <div className="flex items-center gap-2">
-                                    <span>{service.name}</span>
+                                    <span className={service.isPaid ? "line-through opacity-50" : ""}>
+                                      {service.name}
+                                    </span>
                                     <span className="text-xs text-gray-400">×{service.quantity}</span>
+                                    {service.isPaid && (
+                                      <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 font-semibold rounded-full">
+                                        Đã chi trả
+                                      </span>
+                                    )}
                                   </div>
-                                  <span className="font-bold">{formatCurrency(service.price * service.quantity)}</span>
+                                  <span className={cn(
+                                    "font-bold",
+                                    service.isPaid ? "text-green-600 line-through opacity-50" : ""
+                                  )}>
+                                    {formatCurrency(service.price * service.quantity)}
+                                  </span>
                                 </div>
                               ))}
                             </div>

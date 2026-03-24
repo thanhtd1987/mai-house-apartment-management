@@ -16,6 +16,9 @@ export interface Invoice {
 }
 
 export interface ExtraService {
-  name: string;
-  price: number;
+  serviceId: string;           // ID để lookup service details
+  serviceName: string;          // Snapshot tên tại thời điểm tạo invoice
+  unitPrice: number;            // Snapshot giá tại thời điểm tạo invoice
+  quantity: number;             // Số lần dùng
+  totalPrice: number;           // unitPrice * quantity
 }
