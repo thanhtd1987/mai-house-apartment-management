@@ -249,7 +249,7 @@ export function QuickInvoiceModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
             onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
-            className="relative w-full max-w-3xl max-h-[100dvh] sm:max-h-[90dvh] sm:rounded-[2.5rem] rounded-t-3xl overflow-hidden flex flex-col"
+            className="relative w-[95vw] sm:w-[calc(100%-2rem)] lg:w-[1024px] max-w-[1024px] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2.5rem] rounded-t-3xl overflow-hidden flex flex-col"
           >
             {/* Main Card with Gradient Border */}
             <div className="relative bg-white flex flex-col h-full overflow-hidden">
