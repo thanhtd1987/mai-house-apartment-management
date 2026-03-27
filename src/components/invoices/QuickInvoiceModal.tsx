@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Camera, Loader2, ChevronDown, ChevronUp, Info, Sparkles, Plus, Minus, Trash2 } from 'lucide-react';
 import { Room, ExtraService } from '../../types';
@@ -8,6 +8,11 @@ import { useOCR, useRoomServiceUsages } from '../../hooks';
 import { AddInvoiceServiceModal } from './AddInvoiceServiceModal';
 import { getCurrentMonth } from '../../types/roomServiceUsage';
 import { useDataStore } from '../../stores';
+
+// Constants
+const WATER_FALLBACK_PRICE = 60000;
+const EDITED_BADGE_TEXT = 'Đã chỉnh';
+const ACTUAL_GUESTS_LABEL = 'Thực tế:';
 
 interface InvoiceService {
   name: string;
@@ -67,6 +72,8 @@ export function QuickInvoiceModal({
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [billedGuestCount, setBilledGuestCount] = useState<number>(guestCount);
+  const hasUserEditedBilledCount = useRef(false);
 
   // Load monthly service usages
   // Load monthly service usages - get services from hook for real-time updates
@@ -123,19 +130,30 @@ export function QuickInvoiceModal({
     }
   }, [roomId, isOpen, rooms]);
 
+  // Sync billed guest count when guestCount changes (only if user hasn't manually edited)
+  useEffect(() => {
+    if (!hasUserEditedBilledCount.current) {
+      setBilledGuestCount(prev => prev !== guestCount ? guestCount : prev);
+    }
+  }, [guestCount]);
+
   if (!isOpen) return null;
 
   const electricityOld = selectedRoom?.lastElectricityMeter || 0;
   const electricityUsed = Math.max(0, electricityNew - electricityOld);
 
-  // Calculate water price - uniform rate per person
-  const calculateWaterPrice = (): number => {
-    if (!utilityPricing || guestCount === 0) return 60000; // fallback
-    return guestCount * utilityPricing.water.pricePerPerson;
-  };
+  // Calculate water price - use billed guest count (editable)
+  const waterPrice = useMemo(() => {
+    if (!utilityPricing || billedGuestCount === 0) return WATER_FALLBACK_PRICE;
+    return billedGuestCount * utilityPricing.water.pricePerPerson;
+  }, [utilityPricing, billedGuestCount]);
 
-  const waterPrice = calculateWaterPrice();
-  const electricityPrice = utilityPricing ? electricityUsed * utilityPricing.electricity.pricePerKwh : calculateElectricity(electricityUsed);
+  // Calculate electricity price
+  const electricityPrice = useMemo(() => {
+    return utilityPricing
+      ? electricityUsed * utilityPricing.electricity.pricePerKwh
+      : calculateElectricity(electricityUsed);
+  }, [utilityPricing, electricityUsed]);
   
   // Calculate services total - ONLY UNPAID services
   const servicesTotal = selectedServices
@@ -213,6 +231,17 @@ export function QuickInvoiceModal({
     setSelectedServices(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Guest count handlers with memoization
+  const decrementGuestCount = useCallback(() => {
+    hasUserEditedBilledCount.current = true;
+    setBilledGuestCount(prev => Math.max(1, prev - 1));
+  }, []);
+
+  const incrementGuestCount = useCallback(() => {
+    hasUserEditedBilledCount.current = true;
+    setBilledGuestCount(prev => prev + 1);
+  }, []);
+
   // Filter available rooms for Mode 1 (Dashboard)
   // Only show rooms that DON'T have an invoice for current month
   const currentMonth = new Date().getMonth() + 1;
@@ -222,6 +251,17 @@ export function QuickInvoiceModal({
     if (!isDashboardMode) return [];
     return filterRoomsWithoutInvoice(rooms, invoices, currentMonth, currentYear);
   }, [isDashboardMode, rooms, invoices, currentMonth, currentYear]);
+
+  // Memoize comparison to avoid repeated evaluations
+  const isBilledCountModified = billedGuestCount !== guestCount;
+
+  // Edited badge component
+  const EditedBadge = useMemo(() => (
+    <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full flex items-center gap-1">
+      <Info size={8} />
+      {EDITED_BADGE_TEXT}
+    </span>
+  ), []);
 
   return (
     <AnimatePresence>
@@ -401,11 +441,97 @@ export function QuickInvoiceModal({
                     )}
                   </motion.div>
 
+                  {/* Water Price - Editable Guest Count */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="space-y-2 sm:space-y-3"
+                  >
+                    <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-wider">
+                      <Info size={14} className="text-emerald-500 sm:size={16}" />
+                      Tiền nước
+                    </label>
+                    <div className={cn(
+                      "bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border-2 transition-all",
+                      isBilledCountModified
+                        ? "border-amber-200 bg-amber-50"
+                        : "border-gray-200"
+                    )}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900 text-sm sm:text-base">Số khách tính tiền</span>
+                          {isBilledCountModified && EditedBadge}
+                        </div>
+                        <p className="font-black text-base sm:text-lg text-emerald-600 tabular-nums">
+                          {formatCurrency(waterPrice)}
+                        </p>
+                      </div>
+
+                      {isBilledCountModified && (
+                        <div className="text-xs text-amber-600 flex items-center gap-1 mb-2">
+                          <Info size={10} />
+                          {ACTUAL_GUESTS_LABEL} {guestCount} khách
+                        </div>
+                      )}
+
+                      {/* Inline Stepper */}
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <motion.button
+                          whileHover={{ scale: billedGuestCount > 1 ? 1.05 : 1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={decrementGuestCount}
+                          disabled={billedGuestCount <= 1 || !selectedRoom}
+                          className={cn(
+                            "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all",
+                            billedGuestCount <= 1 || !selectedRoom
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          )}
+                          aria-label="Giảm số khách tính tiền nước"
+                        >
+                          <Minus size={16} className="sm:size={18}" />
+                        </motion.button>
+
+                        <div className="flex-1 text-center">
+                          <span className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums">
+                            {billedGuestCount}
+                          </span>
+                          <span className="text-xs text-gray-400 block">khách</span>
+                        </div>
+
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={incrementGuestCount}
+                          disabled={!selectedRoom}
+                          className={cn(
+                            "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg",
+                            !selectedRoom
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/30"
+                          )}
+                          aria-label="Tăng số khách tính tiền nước"
+                        >
+                          <Plus size={16} className="sm:size={18}" />
+                        </motion.button>
+                      </div>
+
+                      {/* Helper text */}
+                      <p className="text-xs text-gray-400 mt-2">
+                        {isBilledCountModified
+                          ? `${ACTUAL_GUESTS_LABEL} ${guestCount} khách → Tính cho ${billedGuestCount} khách`
+                          : `Tính ${formatCurrency(utilityPricing?.water.pricePerPerson || WATER_FALLBACK_PRICE)}/khách`
+                        }
+                      </p>
+                    </div>
+                  </motion.div>
+
                   {/* Extra Services - Simple List */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ delay: 0.25 }}
                     className="space-y-2 sm:space-y-3"
                   >
                     <div className="flex items-center justify-between">
@@ -571,12 +697,29 @@ export function QuickInvoiceModal({
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.1 }}
-                          className="bg-white rounded-2xl p-4 border border-gray-200"
+                          className={cn(
+                            "bg-white rounded-2xl p-4 border transition-all",
+                            isBilledCountModified
+                              ? "border-amber-200 bg-amber-50"
+                              : "border-gray-200"
+                          )}
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-bold text-gray-900">Tiền nước</p>
-                              <p className="text-xs text-gray-400">{guestCount} khách</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-gray-900">Tiền nước</p>
+                                {isBilledCountModified && (
+                                  <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full">
+                                    {EDITED_BADGE_TEXT}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400">
+                                {billedGuestCount} khách
+                                {isBilledCountModified && (
+                                  <span className="text-amber-600"> (thực tế {guestCount})</span>
+                                )}
+                              </p>
                             </div>
                             <p className="font-black text-lg text-emerald-600">{formatCurrency(waterPrice)}</p>
                           </div>
