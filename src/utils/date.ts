@@ -76,3 +76,55 @@ export function isFuture(dateString: string | Date): boolean {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
   return date.getTime() > Date.now();
 }
+
+/**
+ * Add days to a date
+ * @param dateString - Base date string or Date object
+ * @param days - Number of days to add (can be negative)
+ * @returns New date with days added
+ */
+export function addDays(dateString: string | Date, days: number): Date {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+/**
+ * Add months to a date
+ * @param dateString - Base date string or Date object
+ * @param months - Number of months to add (can be negative)
+ * @returns New date with months added
+ */
+export function addMonths(dateString: string | Date, months: number): Date {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+}
+
+/**
+ * Check if a date is within N days from now
+ * @param dateString - Date string or Date object to check
+ * @param days - Number of days threshold
+ * @returns True if date is within the threshold
+ */
+export function isWithinDays(dateString: string | Date, days: number): boolean {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const now = new Date();
+  const diffTime = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= days;
+}
+
+/**
+ * Check if a date is before today
+ * @param dateString - Date string or Date object to check
+ * @returns True if date is in the past
+ */
+export function isBeforeToday(dateString: string | Date): boolean {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+}
