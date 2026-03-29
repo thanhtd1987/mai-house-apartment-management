@@ -20,6 +20,10 @@ export interface Room {
   // DEPRECATED: Kept for backward compatibility during migration
   currentGuestId?: string;
   facilities?: string[];
+
+  // Smart lock reference (optional)
+  smartLockId?: string;        // Reference to SmartLock
+  hasSmartLock?: boolean;      // Quick check without populating
 }
 
 export type RoomType = Room['type'];
