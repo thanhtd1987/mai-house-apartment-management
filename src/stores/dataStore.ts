@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { Room, Guest, Facility, Invoice } from '../types';
+import { SmartLock } from '../types/smartLock';
 import { UtilityPricing } from '../types/utilityPricing';
 import { ExtraServiceConfig } from '../types/extraService';
 
@@ -11,6 +12,7 @@ interface DataState {
   invoices: Invoice[];
   utilityPricing: UtilityPricing[];
   extraServices: ExtraServiceConfig[];
+  smartLocks: SmartLock[];
 
   setRooms: (rooms: Room[]) => void;
   setGuests: (guests: Guest[]) => void;
@@ -18,6 +20,7 @@ interface DataState {
   setInvoices: (invoices: Invoice[]) => void;
   setUtilityPricing: (pricing: UtilityPricing[]) => void;
   setExtraServices: (services: ExtraServiceConfig[]) => void;
+  setSmartLocks: (locks: SmartLock[]) => void;
 
   updateRoom: (id: string, updates: Partial<Room>) => void;
   updateGuest: (id: string, updates: Partial<Guest>) => void;
@@ -33,6 +36,7 @@ export const useDataStore = create<DataState>()(
       invoices: [],
       utilityPricing: [],
       extraServices: [],
+      smartLocks: [],
 
       setRooms: (rooms) => set({ rooms }),
       setGuests: (guests) => set({ guests }),
@@ -40,6 +44,7 @@ export const useDataStore = create<DataState>()(
       setInvoices: (invoices) => set({ invoices }),
       setUtilityPricing: (pricing) => set({ utilityPricing: pricing }),
       setExtraServices: (services) => set({ extraServices: services }),
+      setSmartLocks: (locks) => set({ smartLocks: locks }),
 
       updateRoom: (id, updates) => set((state) => ({
         rooms: state.rooms.map(r => r.id === id ? { ...r, ...updates } : r)
