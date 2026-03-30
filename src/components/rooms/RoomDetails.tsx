@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt, FileText } from 'lucide-react';
-import { Room, Guest, Facility } from '../../types';
-import { cn, formatCurrency, formatDate, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
+import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt, FileText, Lock, Battery, Plus, AlertCircle } from 'lucide-react';
+import { Room, Guest, Facility, SmartLock } from '../../types';
+import { cn, formatCurrency, formatDate, isPast, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
 import { RoomServiceManager } from './RoomServiceManager';
+import { SetupSmartLockModal } from '../smartLocks/SetupSmartLockModal';
+import { UpdatePasswordModal } from '../smartLocks/UpdatePasswordModal';
+import { UpdateBatteryModal } from '../smartLocks/UpdateBatteryModal';
+import { DeleteLockConfirmationModal } from '../smartLocks/DeleteLockConfirmationModal';
+import { useSmartLocks } from '../../hooks/useSmartLocks';
 import { useDataStore } from '../../stores';
 
 interface OccupancyHistoryEntry {
@@ -28,7 +33,281 @@ interface RoomDetailsProps {
   onCreateInvoice?: (roomId: string) => void; // NEW: Create invoice for this room
 }
 
-type TabType = 'overview' | 'services' | 'facilities' | 'history';
+// SmartLockTabContent Component
+interface SmartLockTabContentProps {
+  room: Room;
+  roomGuests: Array<{ guestId: string; guest: Guest; isRepresentative: boolean; checkInDate: string }>;
+}
+
+function SmartLockTabContent({ room, roomGuests }: SmartLockTabContentProps) {
+  const { smartLocks } = useDataStore();
+  const {
+    createLock,
+    updatePassword,
+    updateBattery,
+    deleteLock
+  } = useSmartLocks();
+
+  const [lock, setLock] = useState<SmartLock | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modal states
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showBatteryModal, setShowBatteryModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Load lock for this room
+  React.useEffect(() => {
+    const loadLock = async () => {
+      setIsLoading(true);
+      const lockData = smartLocks.find(l => l.roomId === room.id) || null;
+      setLock(lockData);
+      setIsLoading(false);
+    };
+    loadLock();
+  }, [room.id, smartLocks]);
+
+  // Calculate status
+  const getPasswordStatus = () => {
+    if (!lock) return null;
+
+    const isExpired = isPast(lock.passwordExpiryDate);
+    const daysUntilExpiry = Math.ceil(
+      (new Date(lock.passwordExpiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (isExpired) {
+      return { label: 'Đã hết hạn', color: 'bg-rose-100 text-rose-700', icon: AlertCircle };
+    } else if (daysUntilExpiry <= 7) {
+      return { label: 'Sắp hết hạn', color: 'bg-amber-100 text-amber-700', icon: AlertCircle };
+    } else {
+      return { label: 'Có hiệu lực', color: 'bg-green-100 text-green-700', icon: Shield };
+    }
+  };
+
+  const getBatteryStatus = () => {
+    if (!lock) return null;
+
+    const needsReplacement = isPast(lock.nextBatteryReplacementDate);
+    const daysUntilReplacement = Math.ceil(
+      (new Date(lock.nextBatteryReplacementDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (needsReplacement) {
+      return { label: 'Cần thay pin', color: 'bg-rose-100 text-rose-700', icon: AlertCircle };
+    } else if (daysUntilReplacement <= 7) {
+      return { label: 'Sắp cần thay', color: 'bg-amber-100 text-amber-700', icon: AlertCircle };
+    } else {
+      return { label: 'Bình thường', color: 'bg-green-100 text-green-700', icon: Battery };
+    }
+  };
+
+  const passwordStatus = getPasswordStatus();
+  const batteryStatus = getBatteryStatus();
+  const hasActiveGuests = roomGuests.length > 0;
+
+  // Handlers
+  const handleSetupLock = async (lockData: Partial<SmartLock>) => {
+    await createLock(room.id, lockData);
+  };
+
+  const handleUpdatePassword = async (lockId: string, password: string, expiryDate: string) => {
+    await updatePassword(lockId, password, expiryDate);
+  };
+
+  const handleUpdateBattery = async (lockId: string, batteryDate: string, nextBatteryDate: string) => {
+    await updateBattery(lockId, batteryDate, nextBatteryDate);
+  };
+
+  const handleDeleteLock = async () => {
+    if (lock) {
+      await deleteLock(lock.id);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-6">
+        {!lock ? (
+          // No Lock State
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-12 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-3xl border border-slate-200"
+          >
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-200 flex items-center justify-center">
+              <Lock size={40} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Chưa có khóa cửa thông minh</h3>
+            <p className="text-slate-600 mb-6">Thiết lập khóa cửa để quản lý mật khẩu và theo dõi pin</p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowSetupModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+            >
+              <Plus size={18} />
+              Thiết lập khóa cửa
+            </motion.button>
+          </motion.div>
+        ) : (
+          // Lock exists - Display details
+          <div className="space-y-6">
+            {/* Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Password Status */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-200/50"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Lock size={20} className="text-blue-600" />
+                    <span className="text-sm font-bold text-blue-600 uppercase">Mật khẩu</span>
+                  </div>
+                  {passwordStatus && (
+                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1", passwordStatus.color)}>
+                      <passwordStatus.icon size={12} />
+                      {passwordStatus.label}
+                    </span>
+                  )}
+                </div>
+                <div className="text-2xl font-bold text-slate-800 mb-2 font-mono">
+                  {lock.password}
+                </div>
+                <div className="text-sm text-slate-600">
+                  Hạn: {formatDate(lock.passwordExpiryDate)}
+                </div>
+              </motion.div>
+
+              {/* Battery Status */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-gradient-to-br from-green-50 to-green-100/50 p-5 rounded-2xl border border-green-200/50"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Battery size={20} className="text-green-600" />
+                    <span className="text-sm font-bold text-green-600 uppercase">Pin</span>
+                  </div>
+                  {batteryStatus && (
+                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1", batteryStatus.color)}>
+                      <batteryStatus.icon size={12} />
+                      {batteryStatus.label}
+                    </span>
+                  )}
+                </div>
+                <div className="text-2xl font-bold text-slate-800 mb-2">
+                  {formatDate(lock.batteryReplacementDate)}
+                </div>
+                <div className="text-sm text-slate-600">
+                  Lần tới: {formatDate(lock.nextBatteryReplacementDate)}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Actions */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-slate-50 rounded-2xl p-6"
+            >
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Thao tác</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowPasswordModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                >
+                  <Lock size={18} />
+                  Đổi mật khẩu
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowBatteryModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                >
+                  <Battery size={18} />
+                  Cập nhật pin
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowDeleteModal(true)}
+                  disabled={hasActiveGuests}
+                  className={cn(
+                    "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-colors cursor-pointer",
+                    hasActiveGuests
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-rose-600 hover:bg-rose-700 text-white"
+                  )}
+                >
+                  <Trash2 size={18} />
+                  Xóa khóa
+                </motion.button>
+              </div>
+              {hasActiveGuests && (
+                <p className="text-xs text-amber-700 mt-3 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  Không thể xóa khóa khi phòng đang có khách
+                </p>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <SetupSmartLockModal
+        isOpen={showSetupModal}
+        onClose={() => setShowSetupModal(false)}
+        onSave={handleSetupLock}
+        roomId={room.id}
+      />
+
+      <UpdatePasswordModal
+        isOpen={showPasswordModal}
+        lockId={lock?.id || ''}
+        currentPassword={lock?.password || ''}
+        onSubmit={handleUpdatePassword}
+        onClose={() => setShowPasswordModal(false)}
+      />
+
+      <UpdateBatteryModal
+        isOpen={showBatteryModal}
+        lockId={lock?.id || ''}
+        currentBatteryDate={lock?.batteryReplacementDate || ''}
+        onSubmit={handleUpdateBattery}
+        onClose={() => setShowBatteryModal(false)}
+      />
+
+      <DeleteLockConfirmationModal
+        isOpen={showDeleteModal}
+        roomNumber={room.number}
+        hasActiveGuests={hasActiveGuests}
+        onConfirm={handleDeleteLock}
+        onClose={() => setShowDeleteModal(false)}
+      />
+    </>
+  );
+}
+
+type TabType = 'overview' | 'services' | 'facilities' | 'history' | 'smartLock';
 
 export function RoomDetails({
   room,
@@ -52,6 +331,7 @@ export function RoomDetails({
     { key: 'overview', label: 'Tổng quan', icon: Home },
     { key: 'services', label: 'Dịch vụ thêm', icon: Receipt },
     { key: 'facilities', label: 'Cơ sở vật chất', icon: Building2 },
+    { key: 'smartLock', label: 'Khóa cửa', icon: Shield },
     { key: 'history', label: 'Lịch sử', icon: History }
   ];
 
@@ -496,6 +776,18 @@ export function RoomDetails({
                     </div>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {activeTab === 'smartLock' && (
+              <motion.div
+                key="smartLock"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <SmartLockTabContent room={room} roomGuests={roomGuests} />
               </motion.div>
             )}
           </AnimatePresence>
