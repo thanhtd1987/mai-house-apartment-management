@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Camera, Loader2, ChevronDown, ChevronUp, Info, Sparkles, Plus, Minus, Trash2 } from 'lucide-react';
 import { Room, ExtraService } from '../../types';
+import { ExtraServiceConfig } from '../../types/extraService';
 import { Invoice } from '../../types/invoice';
 import { cn, formatCurrency, calculateElectricity, filterRoomsWithoutInvoice } from '../../utils';
 import { useOCR, useRoomServiceUsages } from '../../hooks';
@@ -30,6 +31,7 @@ interface QuickInvoiceModalProps {
   onCreateInvoice: (data: InvoiceData) => Promise<void>;
   utilityPricing?: UtilityPricingConfig;
   invoices?: Invoice[]; // NEW: All invoices for filtering
+  availableServices?: ExtraServiceConfig[];
 }
 
 export interface UtilityPricingConfig {
@@ -75,7 +77,6 @@ export function QuickInvoiceModal({
   const [billedGuestCount, setBilledGuestCount] = useState<number>(guestCount);
   const hasUserEditedBilledCount = useRef(false);
 
-  // Load monthly service usages
   // Load monthly service usages - get services from hook for real-time updates
   const { services: monthlyServiceUsages } = useRoomServiceUsages({
     roomId: selectedRoom?.id || '',
@@ -108,14 +109,17 @@ export function QuickInvoiceModal({
           price: serviceConfig?.price || 0,
           quantity: usage.quantity,
           serviceId: usage.serviceId,
-          isPaid: usage.status === 'paid' // Track payment status
+          isPaid: usage.status === 'paid'
         };
       });
       setSelectedServices(services);
     } else {
       setSelectedServices([]);
     }
-  }, [selectedRoom, isOpen, monthlyServiceUsages, extraServices]);
+  // Only re-run when selectedRoom or isOpen changes, NOT when service data changes
+  // This prevents infinite loops while still allowing manual service updates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom, isOpen]);
 
   // Pre-select room when roomId prop is provided (Mode 2)
   useEffect(() => {
@@ -398,7 +402,8 @@ export function QuickInvoiceModal({
                         />
                         <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-xs sm:text-sm font-bold text-gray-400">kWh</span>
                       </div>
-                      <motion.label
+                      <motion.button
+                        type="button"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => fileInputRef.current?.click()}
@@ -416,7 +421,7 @@ export function QuickInvoiceModal({
                           accept="image/*"
                         />
                         {isProcessingOCR ? <Loader2 size={20} className="animate-spin sm:size={24}" /> : <Camera size={20} className="sm:size={24}" />}
-                      </motion.label>
+                      </motion.button>
                     </div>
                     {meterImage && (
                       <motion.div
