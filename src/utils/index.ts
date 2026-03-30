@@ -4,4 +4,5 @@ export * from './errors';
 export * from './date';
 export * from './roomGuests';
 export * from './invoice';
+export * from './smartLock';
 export * from '../types';

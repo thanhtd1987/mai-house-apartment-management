@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { Lock, AlertCircle, CheckCircle, Clock, Calendar, Battery, Filter } from 'lucide-react';
 import { useSmartLocks, useRooms } from '../../hooks';
 import { useDataStore } from '../../stores';
-import { cn, formatDate, isWithinDays, isBeforeToday } from '../../utils';
+import { cn, formatDate, isPast } from '../../utils';
+import { getLockStatus } from '../../utils/smartLock';
 import { SmartLock as SmartLockType } from '../../types';
 
 type FilterType = 'all' | 'expiring' | 'battery' | 'expired';
@@ -15,28 +16,21 @@ export function SmartLocks() {
   const [notifications, setNotifications] = useState<{ expiring: number; battery: number }>({ expiring: 0, battery: 0 });
 
   useEffect(() => {
-    checkExpiringLocks().then(({ expiringPasswords, batteryIssues }) => {
-      setNotifications({ expiring: expiringPasswords.length, battery: batteryIssues.length });
-    });
-  }, [checkExpiringLocks]);
+    checkExpiringLocks()
+      .then(({ expiringPasswords, batteryIssues }) => {
+        setNotifications({ expiring: expiringPasswords.length, battery: batteryIssues.length });
+      })
+      .catch((error) => {
+        console.error('Failed to check expiring locks:', error);
+      });
+  }, [checkExpiringLocks, smartLocks]);
 
-  const getLockStatus = (lock: SmartLockType) => {
-    const expiryDate = new Date(lock.passwordExpiryDate);
-    const nextBatteryDate = new Date(lock.nextBatteryReplacementDate);
-    const isExpired = expiryDate < new Date();
-    const isExpiringSoon = !isExpired && isWithinDays(lock.passwordExpiryDate, 7);
-    const needsBattery = nextBatteryDate <= new Date();
-
-    if (isExpired || needsBattery) return 'critical';
-    if (isExpiringSoon) return 'warning';
-    return 'ok';
-  };
 
   const filteredLocks = smartLocks.filter(lock => {
     const status = getLockStatus(lock);
     switch (filter) {
       case 'expiring': return status === 'warning';
-      case 'battery': return new Date(lock.nextBatteryReplacementDate) <= new Date();
+      case 'battery': return getLockStatus(lock) === 'critical' && isPast(lock.nextBatteryReplacementDate);
       case 'expired': return status === 'critical';
       default: return true;
     }
