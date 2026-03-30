@@ -6,6 +6,7 @@ interface GuestCardProps {
   guest: Guest;
   isSelected: boolean;
   onClick: () => void;
+  key?: string;
 }
 
 export function GuestCard({ guest, isSelected, onClick }: GuestCardProps) {

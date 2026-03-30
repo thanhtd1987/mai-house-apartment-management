@@ -9,6 +9,7 @@ interface RoomSelectionCardProps {
   guests: Guest[];
   isSelected: boolean;
   onClick: () => void;
+  key?: string;
 }
 
 export function RoomSelectionCard({ room, guests, isSelected, onClick }: RoomSelectionCardProps) {
