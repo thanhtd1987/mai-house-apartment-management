@@ -48,6 +48,11 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
                 )}>
                   {config.label}
                 </span>
+                {room.hasSmartLock && (
+                  <span title="Có smart lock">
+                    🔒
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500">
                 {room.type === 'single' ? 'Phòng đơn (1-2 người)' : 'Phòng đôi (3-4 người)'}
