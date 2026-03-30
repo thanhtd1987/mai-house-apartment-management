@@ -1,11 +1,23 @@
+import { useState, useEffect } from 'react';
 import { useDataStore } from '../../stores';
+import { useSmartLocks } from '../../hooks';
 import { StatCard } from '../../components';
 import { formatCurrency } from '../../utils';
-import { DollarSign, Bed, CheckCircle2, AlertCircle } from 'lucide-react';
+import { DollarSign, Bed, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
   const { rooms, invoices } = useDataStore();
+  const { checkExpiringLocks } = useSmartLocks();
+  const [lockAlerts, setLockAlerts] = useState<{ expiring: number; battery: number }>({ expiring: 0, battery: 0 });
+
+  useEffect(() => {
+    checkExpiringLocks().then(({ expiringPasswords, batteryIssues }) => {
+      if (expiringPasswords.length > 0 || batteryIssues.length > 0) {
+        setLockAlerts({ expiring: expiringPasswords.length, battery: batteryIssues.length });
+      }
+    });
+  }, [checkExpiringLocks]);
 
   const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((acc, curr) => acc + curr.totalPrice, 0);
   const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
@@ -28,6 +40,14 @@ export function Dashboard() {
         <StatCard icon={<Bed className="text-blue-600" />} label="Phòng đang ở" value={occupiedCount} subValue={`/${rooms.length} phòng`} />
         <StatCard icon={<CheckCircle2 className="text-amber-600" />} label="Phòng trống" value={availableCount} />
         <StatCard icon={<AlertCircle className="text-rose-600" />} label="Chưa thanh toán" value={unpaidCount} />
+        {lockAlerts.expiring > 0 || lockAlerts.battery > 0 ? (
+          <StatCard
+            icon={<Lock className="text-rose-600" />}
+            label="Smart Lock cần chú ý"
+            value={lockAlerts.expiring + lockAlerts.battery}
+            subValue={lockAlerts.expiring > 0 ? `${lockAlerts.expiring} hết hạn` : `${lockAlerts.battery} cần pin`}
+          />
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
