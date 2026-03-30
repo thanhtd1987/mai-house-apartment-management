@@ -119,6 +119,13 @@ service cloud.firestore {
              data.services.size() >= 0;
     }
 
+    function isValidSmartLock(data) {
+      return data.roomId is string && data.roomId.size() > 0 &&
+             data.password is string && data.password.size() > 0 &&
+             data.passwordExpiryDate is string &&
+             data.nextBatteryReplacementDate is string;
+    }
+
     // Rules
     match /rooms/{roomId} {
       allow read: if isAuthenticated();
@@ -164,6 +171,12 @@ service cloud.firestore {
     match /roomServiceUsages/{usageId} {
       allow read: if isAuthenticated();
       allow create, update: if isAdmin() && isValidRoomServiceUsage(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /smartLocks/{lockId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidSmartLock(request.resource.data);
       allow delete: if isAdmin();
     }
   }
