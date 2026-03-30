@@ -7,17 +7,23 @@ import { DollarSign, Bed, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
-  const { rooms, invoices } = useDataStore();
+  const { rooms, invoices, smartLocks } = useDataStore();
   const { checkExpiringLocks } = useSmartLocks();
   const [lockAlerts, setLockAlerts] = useState<{ expiring: number; battery: number }>({ expiring: 0, battery: 0 });
 
   useEffect(() => {
-    checkExpiringLocks().then(({ expiringPasswords, batteryIssues }) => {
-      if (expiringPasswords.length > 0 || batteryIssues.length > 0) {
-        setLockAlerts({ expiring: expiringPasswords.length, battery: batteryIssues.length });
-      }
-    });
-  }, [checkExpiringLocks]);
+    checkExpiringLocks()
+      .then(({ expiringPasswords, batteryIssues }) => {
+        if (expiringPasswords.length > 0 || batteryIssues.length > 0) {
+          setLockAlerts({ expiring: expiringPasswords.length, battery: batteryIssues.length });
+        } else {
+          setLockAlerts({ expiring: 0, battery: 0 });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to check expiring locks:', error);
+      });
+  }, [checkExpiringLocks, smartLocks]);
 
   const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((acc, curr) => acc + curr.totalPrice, 0);
   const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
