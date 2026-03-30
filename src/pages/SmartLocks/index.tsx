@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Lock, AlertCircle, CheckCircle, Clock, Calendar, Battery } from 'lucide-react';
-import { useSmartLocks } from '../../hooks';
+import { Lock, AlertCircle, CheckCircle, Clock, Calendar, Battery, Filter } from 'lucide-react';
+import { useSmartLocks, useRooms } from '../../hooks';
 import { useDataStore } from '../../stores';
-import { cn, formatDate, isWithinDays } from '../../utils';
+import { cn, formatDate, isWithinDays, isBeforeToday } from '../../utils';
 import { SmartLock as SmartLockType } from '../../types';
 
 type FilterType = 'all' | 'expiring' | 'battery' | 'expired';
