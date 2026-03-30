@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText, DollarSign, Sparkles } from 'lucide-react';
+import { Home, ChevronRight, LayoutDashboard, Bed, Users, Settings, FileText, DollarSign, Sparkles, Lock } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { ROUTES, ROUTE_TITLES, RouteKey } from '../../constants';
 import { useAppStore } from '../../stores';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: ROUTES.INVOICES, icon: <FileText size={20} />, label: ROUTE_TITLES[ROUTES.INVOICES] },
   { id: ROUTES.UTILITY_PRICING, icon: <DollarSign size={20} />, label: ROUTE_TITLES[ROUTES.UTILITY_PRICING] },
   { id: ROUTES.SERVICES, icon: <Sparkles size={20} />, label: ROUTE_TITLES[ROUTES.SERVICES] },
+  { id: ROUTES.SMART_LOCKS, icon: <Lock size={20} />, label: ROUTE_TITLES[ROUTES.SMART_LOCKS] },
 ] as const;
 
 export function Sidebar() {
