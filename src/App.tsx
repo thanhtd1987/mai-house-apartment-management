@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, useRooms, useGuests, useFacilities, useInvoices, useExtraServices, useUtilityPricing } from './hooks';
 import { useAuthStore, useAppStore, useDataStore } from './stores';
 import { Sidebar, Header } from './components/layout';
-import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager } from './pages';
+import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager, SmartLocks } from './pages';
 import { ErrorBoundary, LoginPage, AppLoading } from './components';
 import { ROUTES } from './constants';
 import { UtilityPricingPage } from './pages/UtilityPricing';
@@ -93,6 +93,8 @@ export default function App() {
             console.log('Services updated');
           }}
         />;
+      case ROUTES.SMART_LOCKS:
+        return <SmartLocks />;
       default:
         return <Dashboard />;
     }

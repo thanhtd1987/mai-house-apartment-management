@@ -5,3 +5,4 @@ export * from './Facilities';
 export * from './Invoices/index';
 export * from './UtilityPricing';
 export * from './Services';
+export * from './SmartLocks';
