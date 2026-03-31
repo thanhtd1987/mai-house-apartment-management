@@ -4,8 +4,14 @@ import { doc, getDoc, setDoc, updateDoc, addDoc, collection } from 'firebase/fir
 import { auth, db } from '../services';
 import { useAuthStore } from '../stores';
 
-async function ensureSuperAdminConfig() {
-  const SUPER_ADMIN_EMAIL = 'thanhtd1987@gmail.com';
+async function ensureSuperAdminConfig(currentUser: typeof auth.currentUser) {
+  const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'thanhtd1987@gmail.com';
+
+  // Only attempt to create config if current user is the super admin
+  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) {
+    return;
+  }
+
   const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL, 'config');
 
   try {
@@ -35,9 +41,9 @@ export function useAuth() {
       setUser(u);
       setLoading(false);
 
-      // Auto-create super admin config on first load (only once)
+      // Auto-create super admin config on first load (only once, only for super admin)
       if (!setupDoneRef.current && !previousUserRef.current) {
-        await ensureSuperAdminConfig();
+        await ensureSuperAdminConfig(u);
         setupDoneRef.current = true;
       }
 
