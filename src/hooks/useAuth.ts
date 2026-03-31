@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { auth, db } from '../services';
@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores';
 
 export function useAuth() {
   const { setUser, setLoading } = useAuthStore();
+  const previousUserRef = useRef<typeof auth.currentUser | null>(null);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
@@ -13,7 +14,8 @@ export function useAuth() {
       setUser(u);
       setLoading(false);
 
-      if (u) {
+      // Only track login activity when going from null to user (actual login, not page refresh)
+      if (u && !previousUserRef.current) {
         // Track login activity ONLY if user exists in users collection
         (async () => {
           try {
@@ -40,6 +42,9 @@ export function useAuth() {
           }
         })();
       }
+
+      // Update ref for next comparison
+      previousUserRef.current = u;
     });
     return () => unsubAuth();
   }, []);
