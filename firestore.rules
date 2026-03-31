@@ -65,10 +65,15 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function isSuperAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "thanhtd1987@gmail.com" && request.auth.token.email_verified == true));
+        request.auth.token.email_verified == true &&
+        exists(/databases/$(database)/documents/config/superAdmins/$(request.auth.token.email));
+    }
+
+    function isWhitelisted() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     // Domain Validators
@@ -129,55 +134,70 @@ service cloud.firestore {
     // Rules
     match /rooms/{roomId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidRoom(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidRoom(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /guests/{guestId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidGuest(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidGuest(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /facilities/{facilityId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidFacility(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidFacility(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /invoices/{invoiceId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidInvoice(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidInvoice(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
 
     match /extraServices/{serviceId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidExtraService(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidExtraService(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /utilityPricing/{pricingId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidUtilityPricing(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidUtilityPricing(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /roomServiceUsages/{usageId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidRoomServiceUsage(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidRoomServiceUsage(request.resource.data);
+      allow delete: if isWhitelisted();
     }
 
     match /smartLocks/{lockId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidSmartLock(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if isWhitelisted() && isValidSmartLock(request.resource.data);
+      allow delete: if isWhitelisted();
+    }
+
+    match /userActivities/{activityId} {
+      allow read: if isSuperAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /config/superAdmins/{email} {
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
   }
 }
