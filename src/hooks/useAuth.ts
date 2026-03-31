@@ -1,18 +1,45 @@
 import { useEffect, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { auth, db } from '../services';
 import { useAuthStore } from '../stores';
+
+async function ensureSuperAdminConfig() {
+  const SUPER_ADMIN_EMAIL = 'thanhtd1987@gmail.com';
+  const configRef = doc(db, 'config/superAdmins', SUPER_ADMIN_EMAIL);
+
+  try {
+    const docSnap = await getDoc(configRef);
+    if (!docSnap.exists()) {
+      console.log('🔧 Creating super admin config for', SUPER_ADMIN_EMAIL);
+      await setDoc(configRef, {
+        active: true,
+        createdAt: new Date().toISOString(),
+        notes: 'Initial super admin - auto-created'
+      });
+      console.log('✅ Super admin config created');
+    }
+  } catch (error) {
+    console.error('❌ Error ensuring super admin config:', error);
+  }
+}
 
 export function useAuth() {
   const { setUser, setLoading } = useAuthStore();
   const previousUserRef = useRef<typeof auth.currentUser | null>(null);
+  const setupDoneRef = useRef(false);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => {
+    const unsubAuth = onAuthStateChanged(auth, async (u) => {
       console.log("Auth state changed:", u?.email, u?.emailVerified);
       setUser(u);
       setLoading(false);
+
+      // Auto-create super admin config on first load (only once)
+      if (!setupDoneRef.current && !previousUserRef.current) {
+        await ensureSuperAdminConfig();
+        setupDoneRef.current = true;
+      }
 
       // Only track login activity when going from null to user (actual login, not page refresh)
       if (u && !previousUserRef.current) {
