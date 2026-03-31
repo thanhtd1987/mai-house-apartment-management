@@ -4,7 +4,7 @@
  */
 
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth, useRooms, useGuests, useFacilities, useInvoices, useExtraServices, useUtilityPricing } from './hooks';
+import { useAuth, useRooms, useGuests, useFacilities, useInvoices, useExtraServices, useUtilityPricing, useUsers, useUserActivities } from './hooks';
 import { useAuthStore, useAppStore, useDataStore } from './stores';
 import { Sidebar, Header } from './components/layout';
 import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager, SmartLocks } from './pages';
@@ -12,6 +12,7 @@ import { ErrorBoundary, LoginPage, AppLoading } from './components';
 import { ROUTES } from './constants';
 import { UtilityPricingPage } from './pages/UtilityPricing';
 import { ServicesManager } from './pages/Services';
+import { UsersManager } from './pages/Users';
 import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './services';
 
@@ -21,13 +22,15 @@ export default function App() {
 
   const { activeTab } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
-  
+
   useRooms();
   useGuests();
   useFacilities();
   useInvoices();
   useExtraServices();
   useUtilityPricing();
+  useUsers();
+  useUserActivities();
 
   if (loading) {
     return <AppLoading />;
@@ -95,6 +98,8 @@ export default function App() {
         />;
       case ROUTES.SMART_LOCKS:
         return <SmartLocks />;
+      case ROUTES.USERS:
+        return <UsersManager />;
       default:
         return <Dashboard />;
     }

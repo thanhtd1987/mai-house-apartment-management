@@ -8,3 +8,5 @@ export * from './useInvoices';
 export * from './useExtraServices';
 export * from './useRoomServiceUsages';
 export * from './useSmartLocks';
+export * from './useUsers';
+export * from './useUserActivities';
