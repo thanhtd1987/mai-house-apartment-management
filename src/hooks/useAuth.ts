@@ -12,7 +12,7 @@ async function ensureSuperAdminConfig(currentUser: typeof auth.currentUser) {
     return;
   }
 
-  const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL, 'config');
+  const configRef = doc(db, 'superAdmins', SUPER_ADMIN_EMAIL);
 
   try {
     const docSnap = await getDoc(configRef);

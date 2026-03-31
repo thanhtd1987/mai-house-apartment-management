@@ -68,7 +68,7 @@ service cloud.firestore {
     function isSuperAdmin() {
       return isAuthenticated() &&
         request.auth.token.email_verified == true &&
-        exists(/databases/$(database)/documents/config/superAdmins/$(request.auth.token.email));
+        exists(/databases/$(database)/documents/superAdmins/$(request.auth.token.email));
     }
 
     function isWhitelisted() {
@@ -193,7 +193,7 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    match /config/superAdmins/{email} {
+    match /superAdmins/{email} {
       allow read: if isSuperAdmin();
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin();
