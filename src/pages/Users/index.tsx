@@ -1,0 +1,179 @@
+import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
+import { Plus, Users, Activity, Clock } from 'lucide-react';
+import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
+import { AppUser } from '../../types/user';
+import { useAuthStore, useDataStore } from '../../stores';
+import { isSuperAdmin } from '../../utils/permissions';
+import { Button } from '../../components/common/Button';
+import { UserCard, AddUserModal } from '../../components/users';
+
+export function UsersManager() {
+  const { users, userActivities } = useDataStore();
+  const { user: currentUser } = useAuthStore();
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+
+  // Verify super admin access
+  if (!isSuperAdmin(currentUser)) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Access Denied</h2>
+          <p className="text-slate-500">Bạn không có quyền truy cập trang này.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const activeUsers = users.filter(u => {
+      if (!u.lastLoginAt) return false;
+      return new Date(u.lastLoginAt) > sevenDaysAgo;
+    }).length;
+
+    const neverLoggedIn = users.filter(u => !u.lastLoginAt).length;
+
+    return {
+      total: users.length,
+      active: activeUsers,
+      neverLoggedIn
+    };
+  }, [users]);
+
+  const handleAddUser = () => {
+    setEditingUser(null);
+    setIsInviteModalOpen(true);
+  };
+
+  const handleEditUser = (user: AppUser) => {
+    setEditingUser(user);
+    setIsInviteModalOpen(true);
+  };
+
+  const handleSaveUser = async (userData: Partial<AppUser>) => {
+    try {
+      if (editingUser?.id) {
+        await updateDoc(doc(db, 'users', editingUser.id), {
+          ...userData,
+          createdAt: editingUser.createdAt,
+          invitedBy: editingUser.invitedBy,
+          lastLoginAt: editingUser.lastLoginAt
+        });
+        alert(`Đã cập nhật user ${userData.email}!`);
+      } else {
+        if (!currentUser?.uid) {
+          throw new Error('Not authenticated');
+        }
+        await addDoc(collection(db, 'users'), {
+          ...userData,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: null,
+          invitedBy: currentUser.uid
+        });
+        alert(`Đã thêm ${userData.email} vào whitelist!`);
+      }
+      setIsInviteModalOpen(false);
+      setEditingUser(null);
+    } catch (error) {
+      console.error('Error saving user:', error);
+      throw error;
+    }
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    const userToRemove = users.find(u => u.id === userId);
+    if (!userToRemove) return;
+
+    if (window.confirm(`Bạn có chắc chắn muốn xóa user ${userToRemove.email}?`)) {
+      try {
+        await deleteDoc(doc(db, 'users', userId));
+        alert(`Đã xóa ${userToRemove.email} khỏi whitelist!`);
+      } catch (error) {
+        console.error('Error removing user:', error);
+        alert(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xóa user'}`);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard label="Tổng Users" value={stats.total} icon={Users} color="blue" />
+        <StatCard label="Đang Hoạt Động" value={stats.active} icon={Activity} color="green" subLabel="(7 ngày qua)" />
+        <StatCard label="Chưa Login" value={stats.neverLoggedIn} icon={Clock} color="orange" />
+      </div>
+
+      {/* Add User Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleAddUser} size="lg" className="gap-2">
+          <Plus size={18} />
+          Thêm User
+        </Button>
+      </div>
+
+      {/* Users Grid */}
+      {users.length === 0 ? (
+        <div className="text-center py-12">
+          <Users size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-lg font-medium text-slate-600 mb-2">
+            Chưa có user nào
+          </h3>
+          <p className="text-slate-500 mb-4">
+            Thêm user để họ có thể truy cập hệ thống
+          </p>
+        </div>
+      ) : (
+        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {users.map(user => (
+            <UserCard key={user.id} user={user} onEdit={handleEditUser} onDelete={handleRemoveUser} />
+          ))}
+        </motion.div>
+      )}
+
+      {/* Add/Edit User Modal */}
+      <AddUserModal
+        isOpen={isInviteModalOpen}
+        onClose={() => { setIsInviteModalOpen(false); setEditingUser(null); }}
+        onSave={handleSaveUser}
+        user={editingUser || undefined}
+      />
+    </div>
+  );
+}
+
+// Helper component for stat cards
+function StatCard({ label, value, icon: Icon, color, subLabel }: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  color: 'blue' | 'green' | 'orange';
+  subLabel?: string;
+}) {
+  const colorClasses = {
+    blue: 'from-blue-500 to-cyan-500',
+    green: 'from-green-500 to-emerald-500',
+    orange: 'from-orange-500 to-amber-500'
+  };
+
+  return (
+    <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-lg p-6">
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 bg-gradient-to-br ${colorClasses[color]} rounded-2xl flex items-center justify-center text-white`}>
+          <Icon size={24} />
+        </div>
+        <div className="flex-1">
+          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-sm text-slate-500">{label}</p>
+          {subLabel && <p className="text-xs text-slate-400">{subLabel}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
