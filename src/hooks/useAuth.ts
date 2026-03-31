@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../services';
+import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { auth, db } from '../services';
 import { useAuthStore } from '../stores';
 
 export function useAuth() {
@@ -11,6 +12,34 @@ export function useAuth() {
       console.log("Auth state changed:", u?.email, u?.emailVerified);
       setUser(u);
       setLoading(false);
+
+      if (u) {
+        // Track login activity ONLY if user exists in users collection
+        (async () => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', u.uid));
+
+            if (userDoc.exists()) {
+              // Update lastLoginAt
+              await updateDoc(doc(db, 'users', u.uid), {
+                lastLoginAt: new Date().toISOString()
+              });
+
+              // Log activity
+              await addDoc(collection(db, 'userActivities'), {
+                userId: u.uid,
+                email: u.email,
+                loginTime: new Date().toISOString(),
+                userAgent: navigator.userAgent
+              });
+            }
+            // If user doesn't exist in users collection, don't track
+          } catch (error) {
+            console.error('Error tracking login:', error);
+            // Don't throw - login should still succeed
+          }
+        })();
+      }
     });
     return () => unsubAuth();
   }, []);
