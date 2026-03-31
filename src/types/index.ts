@@ -7,3 +7,4 @@ export * from './extraService';
 export * from './roomServiceUsage';
 export * from './smartLock';
 export * from './common';
+export * from './user';
