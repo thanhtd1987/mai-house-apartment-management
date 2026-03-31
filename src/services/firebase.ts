@@ -23,7 +23,7 @@ const requiredEnvVars = [
   'VITE_FIREBASE_DATABASE_ID',
 ] as const;
 
-const missingVars = requiredEnvVars.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
+const missingVars = requiredEnvVars.filter(key => !import.meta.env[key]);
 
 if (missingVars.length > 0) {
   throw new Error(
