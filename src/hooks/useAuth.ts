@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores';
 
 async function ensureSuperAdminConfig() {
   const SUPER_ADMIN_EMAIL = 'thanhtd1987@gmail.com';
-  const configRef = doc(db, 'config/superAdmins', SUPER_ADMIN_EMAIL);
+  const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL);
 
   try {
     const docSnap = await getDoc(configRef);
