@@ -1,29 +1,21 @@
 import { motion } from 'motion/react';
-import { Edit3, Trash2, Shield, User as UserIcon, ShieldCheck, ShieldAlert } from 'lucide-react';
-import { User } from 'firebase/auth';
+import { Edit3, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { AppUser } from '../../types/user';
 
 interface UserCardProps {
-  user: {
-    uid: string;
-    email: string;
-    displayName?: string | null;
-    role: 'super_admin' | 'admin' | 'staff';
-    notes?: string;
-    createdAt: number;
-  };
-  onEdit: (user: UserCardProps['user']) => void;
-  onDelete: (uid: string) => void;
+  user: AppUser;
+  onEdit: (user: AppUser) => void;
+  onDelete: (userId: string) => void | Promise<void>;
+  key?: string; // React key prop
 }
 
 export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
   const getRoleIcon = () => {
     switch (user.role) {
-      case 'super_admin':
-        return <ShieldCheck className="text-purple-500" size={18} />;
       case 'admin':
         return <Shield className="text-blue-500" size={18} />;
-      case 'staff':
-        return <ShieldAlert className="text-green-500" size={18} />;
+      case 'manager':
+        return <Shield className="text-purple-500" size={18} />;
       default:
         return <UserIcon size={18} />;
     }
@@ -31,12 +23,10 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
 
   const getRoleLabel = () => {
     switch (user.role) {
-      case 'super_admin':
-        return 'Super Admin';
       case 'admin':
         return 'Admin';
-      case 'staff':
-        return 'Staff';
+      case 'manager':
+        return 'Manager';
       default:
         return 'User';
     }
@@ -44,12 +34,10 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
 
   const getRoleGradient = () => {
     switch (user.role) {
-      case 'super_admin':
-        return 'from-purple-500/20 to-pink-500/20';
       case 'admin':
         return 'from-blue-500/20 to-cyan-500/20';
-      case 'staff':
-        return 'from-green-500/20 to-emerald-500/20';
+      case 'manager':
+        return 'from-purple-500/20 to-pink-500/20';
       default:
         return 'from-gray-500/20 to-slate-500/20';
     }
@@ -80,7 +68,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-900 truncate">
-                  {user.displayName || 'Không có tên'}
+                  {user.name || 'Không có tên'}
                 </h3>
                 <p className="text-sm text-gray-600 truncate">{user.email}</p>
               </div>
@@ -98,7 +86,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => onDelete(user.uid)}
+                onClick={() => onDelete(user.id)}
                 className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md transition-colors"
                 title="Xóa"
               >

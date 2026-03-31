@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, User, Shield, FileText } from 'lucide-react';
+import { AppUser } from '../../types/user';
+
+interface UserFormData {
+  email: string;
+  name: string;
+  role: 'admin' | 'manager';
+  notes?: string;
+}
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (userData: {
-    email: string;
-    displayName: string;
-    role: 'super_admin' | 'admin' | 'staff';
-    notes?: string;
-  }) => void;
-  initialData?: {
-    email: string;
-    displayName: string;
-    role: 'super_admin' | 'admin' | 'staff';
-    notes?: string;
-  };
-  isEditing?: boolean;
+  onSave: (userData: UserFormData) => void | Promise<void>;
+  user?: AppUser;
 }
 
-export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing = false }: AddUserModalProps) {
+export function AddUserModal({ isOpen, onClose, onSave, user }: AddUserModalProps) {
   const [formData, setFormData] = useState({
     email: '',
-    displayName: '',
-    role: 'staff' as 'super_admin' | 'admin' | 'staff',
+    name: '',
+    role: 'manager' as 'admin' | 'manager',
     notes: ''
   });
 
@@ -34,10 +32,22 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
   }>({});
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
+    if (user) {
+      setFormData({
+        email: user.email,
+        name: user.name || '',
+        role: user.role,
+        notes: user.notes || ''
+      });
+    } else {
+      setFormData({
+        email: '',
+        name: '',
+        role: 'manager',
+        notes: ''
+      });
     }
-  }, [initialData]);
+  }, [user, isOpen]);
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -48,36 +58,37 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
       newErrors.email = 'Email không hợp lệ';
     }
 
-    if (!formData.displayName.trim()) {
-      newErrors.displayName = 'Tên là bắt buộc';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
-      onSubmit(formData);
-      if (!isEditing) {
+      try {
+        await onSave(formData);
+        // Reset form sau khi save thành công
         setFormData({
           email: '',
-          displayName: '',
-          role: 'staff',
+          name: '',
+          role: 'manager',
           notes: ''
         });
+        setErrors({});
+        onClose();
+      } catch (error) {
+        console.error('Error saving user:', error);
+        // Không reset form nếu có lỗi
       }
-      setErrors({});
     }
   };
 
   const handleClose = () => {
     setFormData({
       email: '',
-      displayName: '',
-      role: 'staff',
+      name: '',
+      role: 'manager',
       notes: ''
     });
     setErrors({});
@@ -111,10 +122,10 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-white">
-                      {isEditing ? 'Chỉnh sửa User' : 'Thêm User Mới'}
+                      {user ? 'Chỉnh sửa User' : 'Thêm User Mới'}
                     </h2>
                     <p className="text-blue-100 mt-1">
-                      {isEditing ? 'Cập nhật thông tin user' : 'Điền thông tin để tạo user mới'}
+                      {user ? 'Cập nhật thông tin user' : 'Điền thông tin để tạo user mới'}
                     </p>
                   </div>
                   <button
@@ -159,16 +170,16 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="text"
-                      value={formData.displayName}
-                      onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Nguyễn Văn A"
                       className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
-                        errors.displayName ? 'border-red-500' : 'border-gray-200'
+                        errors.name ? 'border-red-500' : 'border-gray-200'
                       }`}
                     />
                   </div>
-                  {errors.displayName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
                   )}
                 </div>
 
@@ -184,14 +195,14 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
                         <input
                           type="radio"
                           name="role"
-                          value="staff"
-                          checked={formData.role === 'staff'}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                          value="manager"
+                          checked={formData.role === 'manager'}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' })}
                           className="w-4 h-4 text-blue-600"
                         />
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">Staff</p>
-                          <p className="text-xs text-gray-500">Quyền hạn cơ bản</p>
+                          <p className="font-semibold text-gray-900">Manager</p>
+                          <p className="text-xs text-gray-500">Đầy đủ quyền trừ quản lý users</p>
                         </div>
                       </label>
 
@@ -201,27 +212,12 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
                           name="role"
                           value="admin"
                           checked={formData.role === 'admin'}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' })}
                           className="w-4 h-4 text-blue-600"
                         />
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900">Admin</p>
                           <p className="text-xs text-gray-500">Quyền hạn quản lý</p>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
-                        <input
-                          type="radio"
-                          name="role"
-                          value="super_admin"
-                          checked={formData.role === 'super_admin'}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">Super Admin</p>
-                          <p className="text-xs text-gray-500">Quyền hạn cao nhất</p>
                         </div>
                       </label>
                     </div>
@@ -258,7 +254,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit, initialData, isEditing
                     type="submit"
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg"
                   >
-                    {isEditing ? 'Cập nhật' : 'Thêm User'}
+                    {user ? 'Cập nhật' : 'Thêm User'}
                   </button>
                 </div>
               </form>
