@@ -79,6 +79,20 @@ Stores login history for auditing.
 
 **Indexes:** `loginTime` (desc)
 
+### Collection: `config/superAdmins`
+Stores super admin email whitelist for flexible management.
+
+```typescript
+{
+  id: string;              // Email address as document ID (e.g., "thanhtd1987@gmail.com")
+  active: boolean;         // true = enabled, false = disabled
+  createdAt: string;       // ISO timestamp
+  notes?: string;          // Optional notes
+}
+```
+
+**Indexes:** None (document ID = email)
+
 ## Firestore Security Rules
 
 ### Helper Functions
@@ -90,8 +104,8 @@ function isAuthenticated() {
 
 function isSuperAdmin() {
   return isAuthenticated() &&
-    request.auth.token.email == "thanhtd1987@gmail.com" &&
-    request.auth.token.email_verified == true;
+    request.auth.token.email_verified == true &&
+    exists(/databases/$(database)/documents/config/superAdmins/$(request.auth.token.email));
 }
 
 function isWhitelisted() {
@@ -126,6 +140,16 @@ match /userActivities/{activityId} {
   allow read: if isSuperAdmin();
   allow create: if isAuthenticated();  // Any user can log their own login
   allow update, delete: if isSuperAdmin();
+}
+```
+
+#### Config/SuperAdmins Collection (Super Admin Only)
+```javascript
+match /config/superAdmins/{email} {
+  allow read: if isSuperAdmin();
+  allow create: if isSuperAdmin();
+  allow update: if isSuperAdmin();
+  allow delete: if isSuperAdmin();
 }
 ```
 
@@ -186,12 +210,21 @@ match /userActivities/{activityId} {
 ```typescript
 import { User } from 'firebase/auth';
 
-export const SUPER_ADMIN_EMAIL = 'thanhtd1987@gmail.com';
+export const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL;
 
 export function isSuperAdmin(user: User | null): boolean {
   return user?.email === SUPER_ADMIN_EMAIL && user?.emailVerified === true;
 }
 ```
+
+### Environment Variables (`.env.local`)
+
+```bash
+# Super Admin Email - must match email in config/superAdmins collection
+VITE_SUPER_ADMIN_EMAIL="thanhtd1987@gmail.com"
+```
+
+**Note:** This environment variable is used for client-side UI checks only. Server-side security is enforced by Firestore rules using the `config/superAdmins` collection.
 
 ### Sidebar Conditional Rendering (`src/components/layout/Sidebar.tsx`)
 
@@ -276,6 +309,61 @@ if (u) {
 - `emailVerified` always `true` for Google provider
 - Security rules check this for extra safety
 
+## Initial Setup
+
+### 1. Create Super Admin Config Document
+
+Before deploying the feature, create the initial super admin document in Firestore:
+
+**Option A: Firebase Console**
+1. Go to Firebase Console → Firestore Database
+2. Create collection: `config`
+3. Create sub-collection: `superAdmins`
+4. Add document with ID = your email: `thanhtd1987@gmail.com`
+5. Document data:
+```javascript
+{
+  active: true,
+  createdAt: "2025-03-31T10:00:00Z",
+  notes: "Initial super admin"
+}
+```
+
+**Option B: Firebase CLI**
+```bash
+firebase firestore:create config/superAdmins/thanhtd1987@gmail.com \
+  --active true \
+  --createdAt "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+  --notes "Initial super admin"
+```
+
+**Option C: Via App Code (one-time script)**
+```typescript
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './services/firebase';
+
+await setDoc(doc(db, 'config/superAdmins', 'thanhtd1987@gmail.com'), {
+  active: true,
+  createdAt: new Date().toISOString(),
+  notes: 'Initial super admin'
+});
+```
+
+### 2. Update Environment Variable
+
+Add to `.env.local`:
+```bash
+VITE_SUPER_ADMIN_EMAIL="thanhtd1987@gmail.com"
+```
+
+### 3. Deploy Firestore Rules
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Verify rules are active in Firebase Console → Firestore → Rules.
+
 ## Files to Create
 
 ### New Files
@@ -331,6 +419,9 @@ if (u) {
 - [ ] Whitelisted user writes to any collection → Success
 - [ ] Non-super-admin tries to read `users` collection → Permission denied
 - [ ] Non-super-admin tries to write to `users` collection → Permission denied
+- [ ] Non-super-admin tries to read `config/superAdmins` → Permission denied
+- [ ] Non-super-admin tries to write to `config/superAdmins` → Permission denied
+- [ ] Super admin can access `config/superAdmins` → Success
 
 ## Future Enhancements (Out of Scope)
 
