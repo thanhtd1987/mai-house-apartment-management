@@ -15,3 +15,5 @@ firebase-blueprint.json
 .env.local
 
 analysis/
+# Claude Code configuration
+.claude/
