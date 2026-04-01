@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { auth, db } from '../services';
 import { useAuthStore } from '../stores';
+import { isSuperAdmin } from '../utils/permissions';
 
 async function ensureSuperAdminConfig(currentUser: typeof auth.currentUser) {
   const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'thanhtd1987@gmail.com';
@@ -49,7 +50,8 @@ export function useAuth() {
       }
 
       // Only track login activity when going from null to user (actual login, not page refresh)
-      if (u && !previousUserRef.current) {
+      // Skip tracking for super admin (doesn't need to be in users collection)
+      if (u && !previousUserRef.current && !isSuperAdmin(u)) {
         // Track login activity ONLY if user exists in users collection
         (async () => {
           try {
