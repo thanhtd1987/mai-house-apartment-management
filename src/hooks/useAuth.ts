@@ -13,8 +13,8 @@ async function ensureSuperAdminConfig(currentUser: typeof auth.currentUser) {
     return;
   }
 
-  // Path: config (collection) → superAdmins (document) → email (subcollection) → config (document)
-  const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL, 'config');
+  // Simple path: superAdmins (collection) → email (document)
+  const configRef = doc(db, 'superAdmins', SUPER_ADMIN_EMAIL);
 
   try {
     const docSnap = await getDoc(configRef);
