@@ -46,7 +46,8 @@ export function Toast({ toast, onClose }: ToastProps) {
       setProgress((prev) => {
         if (prev <= step) {
           clearInterval(timer);
-          onClose(toast.id);
+          // Defer onClose to avoid setState during render
+          requestAnimationFrame(() => onClose(toast.id));
           return 0;
         }
         return prev - step;
@@ -54,7 +55,7 @@ export function Toast({ toast, onClose }: ToastProps) {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [toast.id, toast.duration, onClose]);
+  }, [toast.id, toast.duration]);
 
   return (
     <motion.div
