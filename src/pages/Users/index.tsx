@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Users, Activity, Clock } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { AppUser } from '../../types/user';
 import { useAuthStore, useDataStore } from '../../stores';
@@ -37,7 +37,7 @@ export function UsersManager() {
       if (!currentUser?.email) return;
 
       const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'thanhtd1987@gmail.com';
-      const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL, 'config');
+      const configRef = doc(db, 'superAdmins', SUPER_ADMIN_EMAIL);
 
       console.log('🔍 Testing config access:', configRef.path);
 
@@ -99,12 +99,20 @@ export function UsersManager() {
         if (!currentUser?.uid) {
           throw new Error('Not authenticated');
         }
-        await addDoc(collection(db, 'users'), {
-          ...userData,
+        // Use email as document ID to match isWhitelisted() check
+        if (!userData.email) {
+          throw new Error('Email is required');
+        }
+        await setDoc(doc(db, 'users', userData.email), {
+          email: userData.email,
+          name: userData.name || '',
+          role: userData.role || 'manager',
+          phone: userData.phone || '',
+          notes: userData.notes || '',
           createdAt: new Date().toISOString(),
           lastLoginAt: null,
           invitedBy: currentUser.uid
-        });
+        }, { merge: false }); // Don't merge - create new document
         alert(`Đã thêm ${userData.email} vào whitelist!`);
       }
       setIsInviteModalOpen(false);

@@ -67,12 +67,12 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/config/superAdmins/$(request.auth.token.email));
+        exists(/databases/$(database)/documents/superAdmins/$(request.auth.token.email));
     }
 
     function isWhitelisted() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        exists(/databases/$(database)/documents/users/$(request.auth.token.email));
     }
 
     // Domain Validators
@@ -192,7 +192,7 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    match /config/superAdmins/{email} {
+    match /superAdmins/{email} {
       allow read: if isSuperAdmin();
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin();
