@@ -5,10 +5,10 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, useRooms, useGuests, useFacilities, useInvoices, useExtraServices, useUtilityPricing, useUsers, useUserActivities } from './hooks';
-import { useAuthStore, useAppStore, useDataStore } from './stores';
+import { useAuthStore, useAppStore, useDataStore, useToastStore } from './stores';
 import { Sidebar, Header } from './components/layout';
 import { Dashboard, RoomsManager, GuestsManager, FacilitiesManager, InvoicesManager, SmartLocks } from './pages';
-import { ErrorBoundary, LoginPage, AppLoading } from './components';
+import { ErrorBoundary, LoginPage, AppLoading, ToastContainer } from './components';
 import { ROUTES } from './constants';
 import { UtilityPricingPage } from './pages/UtilityPricing';
 import { ServicesManager } from './pages/Services';
@@ -22,6 +22,7 @@ export default function App() {
 
   const { activeTab } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
+  const { toasts, removeToast } = useToastStore();
 
   useRooms();
   useGuests();
@@ -128,6 +129,8 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </ErrorBoundary>
   );
 }

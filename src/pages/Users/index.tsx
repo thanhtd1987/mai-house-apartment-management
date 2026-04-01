@@ -6,14 +6,28 @@ import { db } from '../../services/firebase';
 import { AppUser } from '../../types/user';
 import { useAuthStore, useDataStore } from '../../stores';
 import { isSuperAdmin } from '../../utils/permissions';
-import { Button } from '../../components/common/Button';
+import { Button, ConfirmDialog, StatCard } from '../../components/common';
 import { UserCard, AddUserModal } from '../../components/users';
+import { useToast } from '../../hooks/useToast';
 
 export function UsersManager() {
   const { users, userActivities } = useDataStore();
   const { user: currentUser } = useAuthStore();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const toast = useToast();
 
   // Debug: Check super admin status
   console.log('🔐 UsersManager - Current user:', currentUser?.email);
@@ -94,7 +108,7 @@ export function UsersManager() {
           invitedBy: editingUser.invitedBy,
           lastLoginAt: editingUser.lastLoginAt
         });
-        alert(`Đã cập nhật user ${userData.email}!`);
+        toast.success(`Đã cập nhật user ${userData.email}!`);
       } else {
         if (!currentUser?.uid) {
           throw new Error('Not authenticated');
@@ -113,12 +127,13 @@ export function UsersManager() {
           lastLoginAt: null,
           invitedBy: currentUser.uid
         }, { merge: false }); // Don't merge - create new document
-        alert(`Đã thêm ${userData.email} vào whitelist!`);
+        toast.success(`Đã thêm ${userData.email} vào whitelist!`);
       }
       setIsInviteModalOpen(false);
       setEditingUser(null);
     } catch (error) {
       console.error('Error saving user:', error);
+      toast.error(`Lỗi: ${error instanceof Error ? error.message : 'Không thể lưu user'}`);
       throw error;
     }
   };
@@ -127,15 +142,49 @@ export function UsersManager() {
     const userToRemove = users.find(u => u.id === userId);
     if (!userToRemove) return;
 
-    if (window.confirm(`Bạn có chắc chắn muốn xóa user ${userToRemove.email}?`)) {
-      try {
-        await deleteDoc(doc(db, 'users', userId));
-        alert(`Đã xóa ${userToRemove.email} khỏi whitelist!`);
-      } catch (error) {
-        console.error('Error removing user:', error);
-        alert(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xóa user'}`);
-      }
-    }
+    // Store user data for potential undo
+    const deletedUserData = { ...userToRemove };
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xác nhận xóa user',
+      message: `Bạn có chắc chắn muốn xóa user ${userToRemove.email}? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'users', userId));
+
+          // Show toast with undo action
+          toast.withAction(
+            `Đã xóa ${userToRemove.email} khỏi whitelist!`,
+            'Hoàn tác',
+            async () => {
+              // Undo: restore the user
+              try {
+                await setDoc(doc(db, 'users', userToRemove.email), {
+                  email: deletedUserData.email,
+                  name: deletedUserData.name,
+                  role: deletedUserData.role,
+                  phone: deletedUserData.phone || '',
+                  notes: deletedUserData.notes || '',
+                  createdAt: deletedUserData.createdAt,
+                  lastLoginAt: deletedUserData.lastLoginAt || null,
+                  invitedBy: deletedUserData.invitedBy
+                }, { merge: false });
+                toast.success(`Đã khôi phục ${userToRemove.email}!`);
+              } catch (error) {
+                console.error('Error undoing delete:', error);
+                toast.error('Không thể khôi phục user');
+              }
+            },
+            'success',
+            5000 // Longer duration for undo
+          );
+        } catch (error) {
+          console.error('Error removing user:', error);
+          toast.error(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xóa user'}`);
+        }
+      },
+    });
   };
 
   return (
@@ -180,6 +229,18 @@ export function UsersManager() {
         onClose={() => { setIsInviteModalOpen(false); setEditingUser(null); }}
         onSave={handleSaveUser}
         user={editingUser || undefined}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type="danger"
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
       />
     </div>
   );
