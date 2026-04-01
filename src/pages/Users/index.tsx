@@ -6,7 +6,7 @@ import { db } from '../../services/firebase';
 import { AppUser } from '../../types/user';
 import { useAuthStore, useDataStore } from '../../stores';
 import { isSuperAdmin } from '../../utils/permissions';
-import { Button, ConfirmDialog, StatCard } from '../../components/common';
+import { Button, ConfirmDialog } from '../../components/common';
 import { UserCard, AddUserModal } from '../../components/users';
 import { useToast } from '../../hooks/useToast';
 
