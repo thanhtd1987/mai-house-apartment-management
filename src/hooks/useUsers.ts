@@ -10,13 +10,17 @@ export function useUsers() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log('🔍 useUsers: Setting up listener for users collection');
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
+      console.log('📊 Users snapshot received:', snap.size, 'documents');
       const users = snap.docs.map(d => ({ id: d.id, ...d.data() } as AppUser));
+      console.log('👥 Users data:', users);
       setUsers(users);
       setLoading(false);
       setError(null);
     }, (err) => {
+      console.error('❌ Error loading users:', err);
       setError(err as Error);
       setLoading(false);
     });
