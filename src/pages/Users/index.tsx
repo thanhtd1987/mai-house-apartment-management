@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Users, Activity, Clock } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { AppUser } from '../../types/user';
 import { useAuthStore, useDataStore } from '../../stores';
@@ -15,6 +15,10 @@ export function UsersManager() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
 
+  // Debug: Check super admin status
+  console.log('🔐 UsersManager - Current user:', currentUser?.email);
+  console.log('🔐 UsersManager - isSuperAdmin:', isSuperAdmin(currentUser));
+
   // Verify super admin access
   if (!isSuperAdmin(currentUser)) {
     return (
@@ -26,6 +30,31 @@ export function UsersManager() {
       </div>
     );
   }
+
+  // Debug: Test if super admin config exists in Firestore
+  useEffect(() => {
+    const testConfigAccess = async () => {
+      if (!currentUser?.email) return;
+
+      const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'thanhtd1987@gmail.com';
+      const configRef = doc(db, 'config', 'superAdmins', SUPER_ADMIN_EMAIL, 'config');
+
+      console.log('🔍 Testing config access:', configRef.path);
+
+      try {
+        const docSnap = await getDoc(configRef);
+        if (docSnap.exists()) {
+          console.log('✅ Super admin config exists:', docSnap.data());
+        } else {
+          console.log('❌ Super admin config NOT found');
+        }
+      } catch (error) {
+        console.error('❌ Error accessing config:', error);
+      }
+    };
+
+    testConfigAccess();
+  }, [currentUser]);
 
   // Calculate stats
   const stats = useMemo(() => {
