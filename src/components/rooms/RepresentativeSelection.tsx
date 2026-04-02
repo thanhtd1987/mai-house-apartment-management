@@ -31,14 +31,20 @@ export function RepresentativeSelection({
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {existingRepresentative && (
-          <RepresentativeCard
-            guest={existingRepresentative}
-            isExisting={true}
-            isSelected={representativeId === existingRepresentative.guestId}
-            onSelect={() => onSetRepresentativeId(existingRepresentative.guestId)}
-          />
-        )}
+        {existingRepresentative && (() => {
+          // Find the full guest object for existing representative
+          const existingGuest = guests.find(g => g.id === existingRepresentative.guestId);
+          if (!existingGuest) return null;
+
+          return (
+            <RepresentativeCard
+              guest={existingGuest}
+              isExisting={true}
+              isSelected={representativeId === existingRepresentative.guestId}
+              onSelect={() => onSetRepresentativeId(existingRepresentative.guestId)}
+            />
+          );
+        })()}
 
         {selectedGuests.map(guestId => {
           const guest = guests.find(g => g.id === guestId)!;

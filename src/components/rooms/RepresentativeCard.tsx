@@ -1,9 +1,9 @@
 import { Crown } from 'lucide-react';
 import { cn } from '../../utils';
-import { RoomGuest } from '../../types';
+import { Guest } from '../../types';
 
 interface RepresentativeCardProps {
-  guest: RoomGuest | { id: string; name: string };
+  guest: Guest;
   isExisting: boolean;
   isSelected: boolean;
   onSelect: () => void;
@@ -31,10 +31,10 @@ export function RepresentativeCard({ guest, isExisting, isSelected, onSelect }: 
         "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0",
         isExisting ? "bg-purple-100 text-purple-600" : "bg-gradient-to-br from-purple-500 to-pink-500"
       )}>
-        {(guest as any).name.charAt(0)}
+        {guest.name.charAt(0)}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-slate-800 text-sm truncate">{(guest as any).name}</p>
+        <p className="font-semibold text-slate-800 text-sm truncate">{guest.name}</p>
         <p className={cn(
           "text-xs",
           isExisting ? "text-amber-700" : "text-slate-500"
