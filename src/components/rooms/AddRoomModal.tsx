@@ -25,6 +25,8 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
     price: 0,
     lastElectricityMeter: 0,
     paymentStatus: 'paid' as 'paid' | 'unpaid' | 'debt',
+    waterPrice: 0,
+    electricityPrice: 0,
     facilities: [] as string[]
   });
 
@@ -39,6 +41,8 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
         price: room.price || 0,
         lastElectricityMeter: room.lastElectricityMeter || 0,
         paymentStatus: room.paymentStatus || 'paid',
+        waterPrice: room.waterPrice || 0,
+        electricityPrice: room.electricityPrice || 0,
         facilities: room.facilities || []
       });
     } else {
@@ -51,6 +55,8 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
         price: 0,
         lastElectricityMeter: 0,
         paymentStatus: 'paid',
+        waterPrice: 0,
+        electricityPrice: 0,
         facilities: []
       });
     }
@@ -278,6 +284,36 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-5 border border-cyan-200">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        💧 Giá nước (VNĐ/người)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.waterPrice || ''}
+                        onChange={(e) => setFormData({ ...formData, waterPrice: Number(e.target.value) })}
+                        placeholder="0"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-bold"
+                      />
+                      <p className="text-xs text-slate-500 mt-2">Để trống nếu chưa có giá</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        ⚡ Giá điện (VNĐ/kWh)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.electricityPrice || ''}
+                        onChange={(e) => setFormData({ ...formData, electricityPrice: Number(e.target.value) })}
+                        placeholder="0"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg font-bold"
+                      />
+                      <p className="text-xs text-slate-500 mt-2">Để trống nếu chưa có giá</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-200">
                       <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
                         <User size={16} className="text-purple-600" />
@@ -422,7 +458,7 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
                 </h3>
 
                 <div className="bg-gradient-to-br from-green-50 to-blue-50/30 rounded-2xl p-6 border border-green-200">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
                       <p className="text-xs text-slate-500 font-bold uppercase mb-1">Số phòng</p>
                       <p className="text-lg font-bold text-slate-800">{formData.number}</p>
@@ -440,6 +476,25 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
                     <div>
                       <p className="text-xs text-slate-500 font-bold uppercase mb-1">Trạng thái</p>
                       <p className="text-sm font-semibold text-slate-700 capitalize">{formData.status}</p>
+                    </div>
+                  </div>
+
+                  {/* Pricing info */}
+                  <div className="border-t border-green-200 pt-4">
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-3">Giá điện & nước</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="text-xs text-slate-500 mb-1">Giá nước</p>
+                        <p className="text-base font-bold text-cyan-700">
+                          {formData.waterPrice ? formatCurrency(formData.waterPrice) + '/người' : 'Chưa thiết lập'}
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded-xl p-3">
+                        <p className="text-xs text-slate-500 mb-1">Giá điện</p>
+                        <p className="text-base font-bold text-amber-700">
+                          {formData.electricityPrice ? formatCurrency(formData.electricityPrice) + '/kWh' : 'Chưa thiết lập'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
