@@ -64,9 +64,16 @@ export function QuickInvoiceModal({
   onCreateInvoice,
   utilityPricing,
   invoices = [], // NEW: All invoices for filtering
+  availableServices = []
 }: QuickInvoiceModalProps) {
   const { rooms, extraServices } = useDataStore(); // Get rooms and extraServices from store
-  
+
+  // Determine mode early
+  const isRoomMode = !!roomId; // Mode 2: Create for specific room (from room/guest pages)
+  const isDashboardMode = !roomId; // Mode 1: Create new (from invoices page)
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
   const [electricityNew, setElectricityNew] = useState<number>(0);
   const [meterImage, setMeterImage] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<InvoiceService[]>([]);
@@ -76,6 +83,7 @@ export function QuickInvoiceModal({
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [billedGuestCount, setBilledGuestCount] = useState<number>(guestCount);
   const hasUserEditedBilledCount = useRef(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Load monthly service usages - get services from hook for real-time updates
   const { services: monthlyServiceUsages } = useRoomServiceUsages({
@@ -83,12 +91,13 @@ export function QuickInvoiceModal({
     month: selectedRoom ? getCurrentMonth() : undefined
   });
 
-  const { isScanning: isProcessingOCR, scanMeter } = useOCR();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { isScanning, scanMeter } = useOCR();
 
-  // Determine mode
-  const isRoomMode = !!roomId; // Mode 2: Create for specific room (from room/guest pages)
-  const isDashboardMode = !roomId; // Mode 1: Create new (from invoices page)
+  // Calculate available rooms memo (moved up to fix hooks order)
+  const availableRooms = useMemo(() => {
+    if (!isDashboardMode) return [];
+    return filterRoomsWithoutInvoice(rooms, invoices, currentMonth, currentYear);
+  }, [isDashboardMode, rooms, invoices, currentMonth, currentYear]);
 
   // Load services when selectedRoom changes or modal opens
   useEffect(() => {
@@ -246,16 +255,6 @@ export function QuickInvoiceModal({
     setBilledGuestCount(prev => prev + 1);
   }, []);
 
-  // Filter available rooms for Mode 1 (Dashboard)
-  // Only show rooms that DON'T have an invoice for current month
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const availableRooms = useMemo(() => {
-    if (!isDashboardMode) return [];
-    return filterRoomsWithoutInvoice(rooms, invoices, currentMonth, currentYear);
-  }, [isDashboardMode, rooms, invoices, currentMonth, currentYear]);
-
   // Memoize comparison to avoid repeated evaluations
   const isBilledCountModified = billedGuestCount !== guestCount;
 
@@ -409,18 +408,18 @@ export function QuickInvoiceModal({
                         onClick={() => fileInputRef.current?.click()}
                         className={cn(
                           "p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shrink-0",
-                          isProcessingOCR || !selectedRoom ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 shadow-lg"
+                          isScanning || !selectedRoom ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 shadow-lg"
                         )}
                       >
                         <input
                           type="file"
                           ref={fileInputRef}
                           onChange={handleOCRMeter}
-                          disabled={isProcessingOCR || !selectedRoom}
+                          disabled={isScanning || !selectedRoom}
                           className="hidden"
                           accept="image/*"
                         />
-                        {isProcessingOCR ? <Loader2 size={20} className="animate-spin sm:size={24}" /> : <Camera size={20} className="sm:size={24}" />}
+                        {isScanning ? <Loader2 size={20} className="animate-spin sm:size={24}" /> : <Camera size={20} className="sm:size={24}" />}
                       </motion.button>
                     </div>
                     {meterImage && (
