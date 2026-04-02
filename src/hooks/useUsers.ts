@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { AppUser } from '../types/user';
-import { useDataStore } from '../stores';
+import { useDataStore, useAuthStore } from '../stores';
+import { isSuperAdmin } from '../utils/permissions';
 
 export function useUsers() {
   const { setUsers } = useDataStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only fetch users collection if user is authenticated and is superAdmin
+    if (!user || !isSuperAdmin(user)) {
+      setLoading(false);
+      return;
+    }
+
     console.log('🔍 useUsers: Setting up listener for users collection');
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
@@ -26,7 +34,7 @@ export function useUsers() {
     });
 
     return () => unsub();
-  }, [setUsers]);
+  }, [setUsers, user]);
 
   return { loading, error };
 }

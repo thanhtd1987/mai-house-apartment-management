@@ -2,14 +2,21 @@ import { useEffect, useCallback, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services';
 import { UtilityPricing, UtilityPricingFormData, UtilityType } from '../types/utilityPricing';
-import { useDataStore } from '../stores';
+import { useDataStore, useAuthStore } from '../stores';
 
 export function useUtilityPricing() {
   const { utilityPricing, setUtilityPricing } = useDataStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only fetch data if user is authenticated
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, 'utilityPricing'),
       orderBy('effectiveDate', 'desc')
@@ -34,7 +41,7 @@ export function useUtilityPricing() {
     );
 
     return () => unsubscribe();
-  }, [setUtilityPricing]);
+  }, [setUtilityPricing, user]);
 
   const getActivePricing = useCallback((type: UtilityType): UtilityPricing | undefined => {
     return utilityPricing.find(u => u.type === type && u.isActive);

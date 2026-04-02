@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { UserActivity } from '../types/user';
-import { useDataStore } from '../stores';
+import { useDataStore, useAuthStore } from '../stores';
+import { isSuperAdmin } from '../utils/permissions';
 
 export function useUserActivities(limitCount = 50) {
   const { setUserActivities } = useDataStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only fetch user activities if user is authenticated and is superAdmin
+    if (!user || !isSuperAdmin(user)) {
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, 'userActivities'),
       orderBy('loginTime', 'desc'),
@@ -26,7 +34,7 @@ export function useUserActivities(limitCount = 50) {
     });
 
     return () => unsub();
-  }, [setUserActivities, limitCount]);
+  }, [setUserActivities, limitCount, user]);
 
   return { loading, error };
 }
