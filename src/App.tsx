@@ -15,6 +15,7 @@ import { ServicesManager } from './pages/Services';
 import { UsersManager } from './pages/Users';
 import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 import { db } from './services';
+import { isSuperAdmin } from './utils/permissions';
 
 export default function App() {
   const { user, loading } = useAuthStore();
@@ -24,21 +25,27 @@ export default function App() {
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
   const { toasts, removeToast, addToast } = useToastStore();
 
-  useRooms();
-  useGuests();
-  useFacilities();
-  useInvoices();
-  useExtraServices();
-  useUtilityPricing();
-  useUsers();
-  useUserActivities();
-
   if (loading) {
     return <AppLoading />;
   }
 
   if (!user) {
     return <LoginPage />;
+  }
+
+  // Only fetch data AFTER user is logged in
+  // This prevents Firebase errors when not authenticated
+  useRooms();
+  useGuests();
+  useFacilities();
+  useInvoices();
+  useExtraServices();
+  useUtilityPricing();
+
+  // Only fetch users collection for superAdmins
+  if (isSuperAdmin(user)) {
+    useUsers();
+    useUserActivities();
   }
 
   const renderContent = () => {
