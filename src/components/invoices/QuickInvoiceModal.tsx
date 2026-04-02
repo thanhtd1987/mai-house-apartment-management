@@ -150,8 +150,7 @@ export function QuickInvoiceModal({
     }
   }, [guestCount]);
 
-  if (!isOpen) return null;
-
+  // Calculate derived values (must be before early return)
   const electricityOld = selectedRoom?.lastElectricityMeter || 0;
   const electricityUsed = Math.max(0, electricityNew - electricityOld);
 
@@ -167,12 +166,41 @@ export function QuickInvoiceModal({
       ? electricityUsed * utilityPricing.electricity.pricePerKwh
       : calculateElectricity(electricityUsed);
   }, [utilityPricing, electricityUsed]);
-  
+
   // Calculate services total - ONLY UNPAID services
-  const servicesTotal = selectedServices
-    .filter((s: InvoiceService) => !s.isPaid)
-    .reduce((acc: number, service: InvoiceService) => acc + (service.price * service.quantity), 0);
-  const totalPrice = (selectedRoom?.price || 0) + electricityPrice + waterPrice + servicesTotal;
+  const servicesTotal = useMemo(() => {
+    return selectedServices
+      .filter((s: InvoiceService) => !s.isPaid)
+      .reduce((acc: number, service: InvoiceService) => acc + (service.price * service.quantity), 0);
+  }, [selectedServices]);
+
+  const totalPrice = useMemo(() => {
+    return (selectedRoom?.price || 0) + electricityPrice + waterPrice + servicesTotal;
+  }, [selectedRoom?.price, electricityPrice, waterPrice, servicesTotal]);
+
+  // Guest count handlers with memoization
+  const decrementGuestCount = useCallback(() => {
+    hasUserEditedBilledCount.current = true;
+    setBilledGuestCount(prev => Math.max(1, prev - 1));
+  }, []);
+
+  const incrementGuestCount = useCallback(() => {
+    hasUserEditedBilledCount.current = true;
+    setBilledGuestCount(prev => prev + 1);
+  }, []);
+
+  // Memoize comparison to avoid repeated evaluations
+  const isBilledCountModified = useMemo(() => billedGuestCount !== guestCount, [billedGuestCount, guestCount]);
+
+  // Edited badge component
+  const EditedBadge = useMemo(() => (
+    <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full flex items-center gap-1">
+      <Info size={8} />
+      {EDITED_BADGE_TEXT}
+    </span>
+  ), []);
+
+  if (!isOpen) return null;
 
   const handleOCRMeter = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -243,28 +271,6 @@ export function QuickInvoiceModal({
   const removeService = (index: number) => {
     setSelectedServices(prev => prev.filter((_, i) => i !== index));
   };
-
-  // Guest count handlers with memoization
-  const decrementGuestCount = useCallback(() => {
-    hasUserEditedBilledCount.current = true;
-    setBilledGuestCount(prev => Math.max(1, prev - 1));
-  }, []);
-
-  const incrementGuestCount = useCallback(() => {
-    hasUserEditedBilledCount.current = true;
-    setBilledGuestCount(prev => prev + 1);
-  }, []);
-
-  // Memoize comparison to avoid repeated evaluations
-  const isBilledCountModified = billedGuestCount !== guestCount;
-
-  // Edited badge component
-  const EditedBadge = useMemo(() => (
-    <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 font-semibold rounded-full flex items-center gap-1">
-      <Info size={8} />
-      {EDITED_BADGE_TEXT}
-    </span>
-  ), []);
 
   return (
     <AnimatePresence>
