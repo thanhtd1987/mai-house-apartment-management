@@ -3,14 +3,16 @@ import { Plus, Edit3, Trash2, Settings } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
 import { Facility } from '../../types';
-import { Modal, Button } from '../../components/common';
+import { Modal, Button, ConfirmDialog } from '../../components/common';
 import { formatCurrency } from '../../utils';
-import { useDataStore } from '../../stores';
+import { useDataStore, useToastStore } from '../../stores';
 
 export function FacilitiesManager() {
   const { facilities } = useDataStore();
+  const { addToast } = useToastStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFacility, setEditingFacility] = useState<Partial<Facility> | null>(null);
+  const [deletingFacilityId, setDeletingFacilityId] = useState<string | null>(null);
 
   const handleSaveFacility = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,13 +22,35 @@ export function FacilitiesManager() {
       compensationPrice: Number(formData.get('compensationPrice'))
     };
 
-    if (editingFacility?.id) {
-      await updateDoc(doc(db, 'facilities', editingFacility.id), facilityData);
-    } else {
-      await addDoc(collection(db, 'facilities'), facilityData);
+    try {
+      if (editingFacility?.id) {
+        await updateDoc(doc(db, 'facilities', editingFacility.id), facilityData);
+        addToast('Đã cập nhật thiết bị', 'success');
+      } else {
+        await addDoc(collection(db, 'facilities'), facilityData);
+        addToast('Đã thêm thiết bị mới', 'success');
+      }
+      setIsModalOpen(false);
+      setEditingFacility(null);
+    } catch (err) {
+      console.error('Error saving facility:', err);
+      addToast('Không thể lưu thiết bị', 'error');
     }
-    setIsModalOpen(false);
-    setEditingFacility(null);
+  };
+
+  const handleDeleteFacility = async (facilityId: string) => {
+    try {
+      await deleteDoc(doc(db, 'facilities', facilityId));
+      addToast('Đã xóa thiết bị', 'success');
+      setDeletingFacilityId(null);
+    } catch (err) {
+      console.error('Error deleting facility:', err);
+      addToast('Không thể xóa thiết bị', 'error');
+    }
+  };
+
+  const handleDeleteClick = (facilityId: string) => {
+    setDeletingFacilityId(facilityId);
   };
 
   return (
@@ -49,7 +73,7 @@ export function FacilitiesManager() {
                 <button onClick={() => { setEditingFacility(f); setIsModalOpen(true); }} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
                   <Edit3 size={12} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>
-                <button onClick={() => deleteDoc(doc(db, 'facilities', f.id))} className="p-1 hover:bg-rose-50 rounded-lg text-rose-500">
+                <button onClick={() => handleDeleteClick(f.id)} className="p-1 hover:bg-rose-50 rounded-lg text-rose-500">
                   <Trash2 size={12} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>
               </div>
@@ -83,6 +107,18 @@ export function FacilitiesManager() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingFacilityId}
+        title="Xác nhận xóa thiết bị"
+        message="Bạn có chắc chắn muốn xóa thiết bị này? Hành động này không thể hoàn tác."
+        type="danger"
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        onConfirm={() => deletingFacilityId && handleDeleteFacility(deletingFacilityId)}
+        onCancel={() => setDeletingFacilityId(null)}
+      />
     </div>
   );
 }
