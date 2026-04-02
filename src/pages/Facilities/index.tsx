@@ -45,7 +45,7 @@ export function FacilitiesManager() {
               <div className="p-2 md:p-3 bg-gray-50 rounded-2xl">
                 <Settings className="text-gray-400 w-5 h-5 md:w-6 md:h-6" size={20} />
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
                 <button onClick={() => { setEditingFacility(f); setIsModalOpen(true); }} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
                   <Edit3 size={12} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>

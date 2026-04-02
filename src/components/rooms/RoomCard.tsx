@@ -60,7 +60,7 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex gap-1 md:gap-2 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();

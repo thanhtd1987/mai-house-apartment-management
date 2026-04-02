@@ -13,24 +13,24 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
   const categoryConfig = CATEGORY_CONFIG[service.category];
-
+ 
   return (
     <motion.div
       whileHover={{ y: -4, boxShadow: "0 12px 24px rgba(0,0,0,0.1)" }}
-      className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:border-blue-200 transition-all duration-200 relative overflow-hidden group"
+      className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 hover:border-blue-200 transition-all duration-200 relative overflow-hidden group"
     >
       {/* Category gradient accent */}
       <div className={`h-1.5 bg-gradient-to-r ${categoryConfig.gradient}`} />
 
-      <div className="mt-4">
+      <div className="mt-3 md:mt-4">
         {/* Header: Icon + Name + Actions */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${categoryConfig.gradient} flex items-center justify-center text-white text-2xl shadow-lg`}>
+        <div className="flex items-start justify-between mb-3 md:mb-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${categoryConfig.gradient} flex items-center justify-center text-white text-xl md:text-2xl shadow-lg`}>
               {service.icon || categoryConfig.icon}
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">{service.name}</h3>
+              <h3 className="font-bold text-gray-900 text-base md:text-lg">{service.name}</h3>
               <span className={cn(
                 "text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-1",
                 categoryConfig.bgColor,
@@ -42,20 +42,20 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 md:gap-2 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => onEdit(service)}
               className="p-2 hover:bg-blue-50 rounded-xl text-gray-400 hover:text-blue-600 transition-colors"
               aria-label={`Chỉnh sửa ${service.name}`}
             >
-              <Edit3 size={16} />
+              <Edit3 size={16} className="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <button
               onClick={() => onDelete(service.id)}
               className="p-2 hover:bg-rose-50 rounded-xl text-gray-400 hover:text-rose-600 transition-colors"
               aria-label={`Xóa ${service.name}`}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
         </div>

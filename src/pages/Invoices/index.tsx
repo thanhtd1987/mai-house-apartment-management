@@ -115,7 +115,7 @@ export function InvoicesManager() {
                   <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Tháng {invoice.month}/{invoice.year}</p>
                   {invoice.meterId && <p className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase">Mã ĐH: {invoice.meterId}</p>}
                 </div>
-                <div className="flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-export">
+                <div className="flex gap-1 md:gap-2 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity no-export">
                   {invoice.status === 'unpaid' && (
                     <>
                       <button
