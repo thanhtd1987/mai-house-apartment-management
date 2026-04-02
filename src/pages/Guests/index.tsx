@@ -4,15 +4,16 @@ import { Plus, X, Search, UserCheck } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services';
 import { Guest, Room, Facility } from '../../types';
-import { Button, CropModal } from '../../components';
+import { Button, CropModal, ConfirmDialog } from '../../components';
 import { GuestCard, GuestDetails, AddGuestModal } from '../../components/guests';
 import { AssignRoomsToGuestModal } from '../../components/rooms';
 import { useOCR } from '../../hooks';
 import { cn, handleFirestoreError, OperationType } from '../../utils';
-import { useDataStore } from '../../stores';
+import { useDataStore, useToastStore } from '../../stores';
 
 export function GuestsManager() {
   const { guests, rooms, facilities } = useDataStore();
+  const { addToast } = useToastStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +24,8 @@ export function GuestsManager() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
+  const [deletingGuestId, setDeletingGuestId] = useState<string | null>(null);
+  const [checkingOutGuestId, setCheckingOutGuestId] = useState<string | null>(null);
 
   const { isScanning, scanIDCard } = useOCR();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,24 +90,31 @@ export function GuestsManager() {
     try {
       if (editingGuest) {
         await updateDoc(doc(db, 'guests', editingGuest.id), dataWithPhoto);
+        addToast('Đã cập nhật thông tin khách', 'success');
       } else {
         await addDoc(collection(db, 'guests'), dataWithPhoto);
+        addToast('Đã thêm khách mới', 'success');
       }
-
       handleCloseModal();
     } catch (err) {
       handleFirestoreError(err, editingGuest ? OperationType.UPDATE : OperationType.CREATE, 'guests');
+      addToast('Không thể lưu thông tin khách', 'error');
     }
   };
 
   const handleDeleteGuest = async (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa khách này?')) {
-      try {
-        await deleteDoc(doc(db, 'guests', id));
-      } catch (err) {
-        handleFirestoreError(err, OperationType.DELETE, 'guests');
-      }
+    try {
+      await deleteDoc(doc(db, 'guests', id));
+      addToast('Đã xóa khách', 'success');
+      setDeletingGuestId(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'guests');
+      addToast('Không thể xóa khách', 'error');
     }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setDeletingGuestId(id);
   };
 
   const handleEditGuest = (guest: Guest) => {
@@ -144,20 +154,30 @@ export function GuestsManager() {
   };
 
   const handleCheckoutFromDetails = async () => {
-    if (selectedGuest && window.confirm('Bạn có chắc chắn muốn trả phòng?')) {
-      const room = rooms.find(r => r.currentGuestId === selectedGuest.id);
-      if (room) {
-        try {
-          await updateDoc(doc(db, 'rooms', room.id), {
-            currentGuestId: null,
-            status: 'available'
-          });
-          setShowDetailsModal(false);
-        } catch (err) {
-          console.error("Error checking out:", err);
-        }
-      }
+    if (!selectedGuest) return;
+    
+    const room = rooms.find(r => r.currentGuestId === selectedGuest.id);
+    if (!room) {
+      addToast('Không tìm thấy phòng của khách', 'error');
+      return;
     }
+
+    try {
+      await updateDoc(doc(db, 'rooms', room.id), {
+        currentGuestId: null,
+        status: 'available'
+      });
+      setShowDetailsModal(false);
+      setCheckingOutGuestId(null);
+      addToast('Đã trả phòng thành công', 'success');
+    } catch (err) {
+      console.error("Error checking out:", err);
+      addToast('Không thể trả phòng', 'error');
+    }
+  };
+
+  const handleCheckoutClick = (guestId: string) => {
+    setCheckingOutGuestId(guestId);
   };
 
   const handleAssignRoomToGuest = async (guestIds: string[], roomId: string, checkInDate: string, representativeId: string) => {
@@ -323,15 +343,15 @@ export function GuestsManager() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <GuestCard
-                    guest={guest}
-                    room={getGuestRoom(guest)}
-                    onEdit={handleEditGuest}
-                    onDelete={handleDeleteGuest}
-                    onViewDetails={handleViewGuestDetails}
-                    onAssignRoom={handleAssignRoomForGuest}
-                    onCardClick={() => handleViewGuestDetails(guest.id)}
-                  />
+              <GuestCard
+                guest={guest}
+                room={getGuestRoom(guest)}
+                onEdit={handleEditGuest}
+                onDelete={handleDeleteClick}
+                onViewDetails={handleViewGuestDetails}
+                onAssignRoom={handleAssignRoomForGuest}
+                onCardClick={() => handleViewGuestDetails(guest.id)}
+              />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -393,9 +413,33 @@ export function GuestsManager() {
           }}
           onAssignRoom={handleAssignFromDetails}
           onEdit={handleEditFromDetails}
-          onCheckoutRoom={handleCheckoutFromDetails}
+          onCheckoutRoom={() => handleCheckoutClick(selectedGuest.id)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingGuestId}
+        title="Xác nhận xóa khách"
+        message="Bạn có chắc chắn muốn xóa khách này? Hành động này không thể hoàn tác."
+        type="danger"
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        onConfirm={() => deletingGuestId && handleDeleteGuest(deletingGuestId)}
+        onCancel={() => setDeletingGuestId(null)}
+      />
+
+      {/* Checkout Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!checkingOutGuestId}
+        title="Xác nhận trả phòng"
+        message="Bạn có chắc chắn muốn trả phòng cho khách này?"
+        type="warning"
+        confirmLabel="Trả phòng"
+        cancelLabel="Hủy"
+        onConfirm={handleCheckoutFromDetails}
+        onCancel={() => setCheckingOutGuestId(null)}
+      />
     </div>
   );
 }

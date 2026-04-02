@@ -5,6 +5,7 @@ import { ExtraServiceConfig, CATEGORY_CONFIG } from '../../types/extraService';
 import { useRoomServiceUsages, getServiceDetails } from '../../hooks/useRoomServiceUsages';
 import { getCurrentMonth, formatMonth, ServiceUsage } from '../../types/roomServiceUsage';
 import { cn } from '../../utils';
+import { useToastStore } from '../../stores';
 
 interface RoomServiceManagerProps {
   roomId: string;
@@ -19,6 +20,7 @@ interface ServiceWithDetail {
 }
 
 export function RoomServiceManager({ roomId, extraServices, month }: RoomServiceManagerProps) {
+  const { addToast } = useToastStore();
   const {
     usage,
     services,
@@ -80,9 +82,10 @@ export function RoomServiceManager({ roomId, extraServices, month }: RoomService
       setQuantity(1);
       setNotes('');
       setIsAdding(false);
+      addToast('Đã thêm dịch vụ', 'success');
     } catch (err) {
       console.error('Error adding service:', err);
-      alert('Lỗi khi thêm dịch vụ');
+      addToast('Lỗi khi thêm dịch vụ', 'error');
     } finally {
       setIsAddingService(false);
     }
@@ -99,23 +102,23 @@ export function RoomServiceManager({ roomId, extraServices, month }: RoomService
       setSelectedServiceId('');
       setQuantity(1);
       setNotes('');
+      addToast('Đã cập nhật dịch vụ', 'success');
     } catch (err) {
       console.error('Error updating service:', err);
-      alert('Lỗi khi cập nhật dịch vụ');
+      addToast('Lỗi khi cập nhật dịch vụ', 'error');
     } finally {
       setIsUpdatingService(false);
     }
   };
 
   const handleRemoveService = async (createdAt: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa dịch vụ này?')) return;
-
     try {
       // Remove by createdAt (unique identifier) instead of serviceId
       await removeService(createdAt);
+      addToast('Đã xóa dịch vụ', 'success');
     } catch (err) {
       console.error('Error removing service:', err);
-      alert('Lỗi khi xóa dịch vụ');
+      addToast('Lỗi khi xóa dịch vụ', 'error');
     }
   };
 
@@ -138,10 +141,10 @@ export function RoomServiceManager({ roomId, extraServices, month }: RoomService
     setIsPaying(createdAt);
     try {
       await markServiceAsPaid(createdAt, paymentMethod, service.totalPrice);
-      alert(`Đã xác nhận thanh toán ${service.totalPrice.toLocaleString('vi-VN')}đ (${paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`);
+      addToast(`Đã xác nhận thanh toán ${service.totalPrice.toLocaleString('vi-VN')}đ (${paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`, 'success');
     } catch (err) {
       console.error('Error marking as paid:', err);
-      alert('Lỗi khi cập nhật trạng thái thanh toán');
+      addToast('Lỗi khi cập nhật trạng thái thanh toán', 'error');
     } finally {
       setIsPaying(null);
     }

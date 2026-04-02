@@ -7,11 +7,12 @@ import { Room, Invoice } from '../../types';
 import { Modal, Button } from '../../components/common';
 import { formatCurrency, cn } from '../../utils';
 import { toPng } from 'html-to-image';
-import { useDataStore } from '../../stores';
+import { useDataStore, useToastStore } from '../../stores';
 import { QuickInvoiceModal } from '../../components/invoices/QuickInvoiceModal';
 
 export function InvoicesManager() {
   const { rooms, invoices } = useDataStore();
+  const { addToast } = useToastStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
@@ -67,7 +68,7 @@ export function InvoicesManager() {
       setEditingInvoice(null);
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert('Lỗi khi tạo hóa đơn');
+      addToast('Lỗi khi tạo hóa đơn', 'error');
     }
   };
 

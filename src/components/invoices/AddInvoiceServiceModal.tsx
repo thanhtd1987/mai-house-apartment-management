@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Minus, Search, ChevronDown, Check } from 'lucide-react';
 import { ExtraServiceConfig, CATEGORY_CONFIG } from '../../types/extraService';
 import { cn, formatCurrency } from '../../utils';
+import { useToastStore } from '../../stores';
 
 interface InvoiceService {
   name: string;
@@ -23,6 +24,7 @@ export function AddInvoiceServiceModal({
   onAdd,
   availableServices = []
 }: AddInvoiceServiceModalProps) {
+  const { addToast } = useToastStore();
   // State cho phần nhập mới
   const [newServiceName, setNewServiceName] = useState('');
   const [newServicePrice, setNewServicePrice] = useState('');
@@ -69,7 +71,7 @@ export function AddInvoiceServiceModal({
 
   const handleAddNewService = () => {
     if (!newServiceName.trim() || !newServicePrice || Number(newServicePrice) <= 0) {
-      alert('Vui lòng nhập tên và giá dịch vụ!');
+      addToast('Vui lòng nhập tên và giá dịch vụ!', 'error');
       return;
     }
 

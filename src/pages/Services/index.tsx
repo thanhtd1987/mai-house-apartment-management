@@ -5,8 +5,9 @@ import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestor
 import { db } from '../../services';
 import { ExtraServiceConfig, ExtraServiceFormData, ServiceCategory, CATEGORY_CONFIG } from '../../types/extraService';
 import { ServiceCard, AddServiceModal } from '../../components/services';
+import { ConfirmDialog } from '../../components/common';
 import { cn } from '../../utils';
-import { useDataStore } from '../../stores';
+import { useDataStore, useToastStore } from '../../stores';
 
 interface ServicesManagerProps {
   onUpdateServices: () => void;
@@ -14,10 +15,12 @@ interface ServicesManagerProps {
 
 export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
   const { extraServices: services } = useDataStore();
+  const { addToast } = useToastStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<ExtraServiceConfig | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ServiceCategory | 'all'>('all');
+  const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
 
   const filteredServices = services.filter(service => {
     const matchesSearch = !searchQuery || service.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -32,6 +35,7 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
           ...data,
           updatedAt: new Date().toISOString()
         });
+        addToast('Đã cập nhật dịch vụ', 'success');
       } else {
         await addDoc(collection(db, 'extraServices'), {
           ...data,
@@ -40,26 +44,31 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
+        addToast('Đã thêm dịch vụ mới', 'success');
       }
       onUpdateServices();
       setIsModalOpen(false);
       setEditingService(null);
     } catch (err) {
       console.error('Error saving service:', err);
-      alert('Không thể lưu dịch vụ!');
+      addToast('Không thể lưu dịch vụ!', 'error');
     }
   };
 
   const handleDeleteService = async (serviceId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa dịch vụ này?')) return;
-
     try {
       await deleteDoc(doc(db, 'extraServices', serviceId));
+      addToast('Đã xóa dịch vụ', 'success');
       onUpdateServices();
+      setDeletingServiceId(null);
     } catch (err) {
       console.error('Error deleting service:', err);
-      alert('Không thể xóa dịch vụ!');
+      addToast('Không thể xóa dịch vụ!', 'error');
     }
+  };
+
+  const handleDeleteClick = (serviceId: string) => {
+    setDeletingServiceId(serviceId);
   };
 
   return (
@@ -162,7 +171,7 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
                 <ServiceCard
                   service={service}
                   onEdit={(service) => { setEditingService(service); setIsModalOpen(true); }}
-                  onDelete={handleDeleteService}
+                  onDelete={handleDeleteClick}
                 />
               </motion.div>
             ))}
@@ -181,6 +190,18 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
           />
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingServiceId}
+        title="Xác nhận xóa dịch vụ"
+        message="Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này không thể hoàn tác."
+        type="danger"
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        onConfirm={() => deletingServiceId && handleDeleteService(deletingServiceId)}
+        onCancel={() => setDeletingServiceId(null)}
+      />
     </div>
   );
 }

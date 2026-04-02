@@ -4,6 +4,7 @@ import { X, Loader2 } from 'lucide-react';
 import { ExtraServiceConfig, ExtraServiceFormData, ServiceCategory, CATEGORY_CONFIG } from '../../types/extraService';
 import { cn, formatCurrency } from '../../utils';
 import { Modal } from '../common/Modal';
+import { useToastStore } from '../../stores';
 
 const ICON_OPTIONS = ['🧺', '🧹', '🛏️', '🚗', '🍽️', '📦', '🔌', '🚿', '🧴', '📺', '❄️'];
 
@@ -15,6 +16,7 @@ interface AddServiceModalProps {
 }
 
 export function AddServiceModal({ isOpen, onClose, editingService, onSave }: AddServiceModalProps) {
+  const { addToast } = useToastStore();
   const [formData, setFormData] = useState<ExtraServiceFormData>({
     name: '',
     icon: '🧺',
@@ -49,7 +51,7 @@ export function AddServiceModal({ isOpen, onClose, editingService, onSave }: Add
 
   const handleSubmit = async () => {
     if (!formData.name || formData.price <= 0) {
-      alert('Vui lòng nhập tên và giá dịch vụ!');
+      addToast('Vui lòng nhập tên và giá dịch vụ!', 'error');
       return;
     }
 

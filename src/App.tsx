@@ -22,7 +22,7 @@ export default function App() {
 
   const { activeTab } = useAppStore();
   const { rooms, guests, facilities, invoices, utilityPricing, extraServices } = useDataStore();
-  const { toasts, removeToast } = useToastStore();
+  const { toasts, removeToast, addToast } = useToastStore();
 
   useRooms();
   useGuests();
@@ -55,16 +55,17 @@ export default function App() {
         return <InvoicesManager />;
       case ROUTES.UTILITY_PRICING:
         return <UtilityPricingPage
-          onUpdatePricing={async (id, data) => {
+           onUpdatePricing={async (id, data) => {
             try {
               await updateDoc(doc(db, 'utilityPricing', id), {
                 ...data,
                 updatedAt: new Date().toISOString()
               });
               console.log('✓ Pricing updated:', id);
+              addToast('Đã cập nhật giá', 'success');
             } catch (err) {
               console.error('Error updating pricing:', err);
-              alert('Không thể cập nhật giá!');
+              addToast('Không thể cập nhật giá!', 'error');
             }
           }}
           onCreatePricing={async (data) => {
@@ -76,18 +77,20 @@ export default function App() {
                 createdBy: user?.uid || 'admin'
               });
               console.log('✓ Pricing created:', docRef.id);
+              addToast('Đã tạo giá mới', 'success');
             } catch (err) {
               console.error('Error creating pricing:', err);
-              alert('Không thể tạo giá!');
+              addToast('Không thể tạo giá!', 'error');
             }
           }}
           onDeletePricing={async (id) => {
             try {
               await deleteDoc(doc(db, 'utilityPricing', id));
               console.log('✓ Pricing deleted:', id);
+              addToast('Đã xóa giá', 'success');
             } catch (err) {
               console.error('Error deleting pricing:', err);
-              alert('Không thể xóa giá!');
+              addToast('Không thể xóa giá!', 'error');
             }
           }}
         />;

@@ -3,8 +3,11 @@ import { Home } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../../services';
 import { Button } from '../common';
+import { useToastStore } from '../../stores';
 
 export function LoginPage() {
+  const { addToast } = useToastStore();
+
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
@@ -19,9 +22,9 @@ export function LoginPage() {
 
       if (err instanceof Error) {
         console.error("Error message:", err.message);
-        alert(`Lỗi đăng nhập: ${err.message}`);
+        addToast(`Lỗi đăng nhập: ${err.message}`, 'error');
       } else {
-        alert('Lỗi đăng nhập không xác định');
+        addToast('Lỗi đăng nhập không xác định', 'error');
       }
     }
   };
