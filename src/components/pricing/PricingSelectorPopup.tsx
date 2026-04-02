@@ -96,7 +96,7 @@ export function PricingSelectorPopup({ room, onClose, onSave }: PricingSelectorP
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={isSaving}
           >
-            <option value="">-- Chọn giá nước --</option>
+            <option key="water-placeholder" value="">-- Chọn giá nước --</option>
             {waterPricingOptions.map(p => (
               <option key={p.id} value={p.id}>
                 {p.name} - {formatCurrency(p.basePrice)}/người
@@ -121,7 +121,7 @@ export function PricingSelectorPopup({ room, onClose, onSave }: PricingSelectorP
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={isSaving}
           >
-            <option value="">-- Chọn giá điện --</option>
+            <option key="electricity-placeholder" value="">-- Chọn giá điện --</option>
             {electricityPricingOptions.map(p => (
               <option key={p.id} value={p.id}>
                 {p.name} - {formatCurrency(p.basePrice)}/kWh

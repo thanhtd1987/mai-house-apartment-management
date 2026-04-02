@@ -636,9 +636,11 @@ export function QuickInvoiceModal({
                         </div>
                       ) : (
                         <AnimatePresence>
-                          {selectedServices.map((service, index) => (
+                          {selectedServices.map((service, index) => {
+                            const uniqueKey = `${service.serviceId || 'custom'}-${service.name}-${service.price}-${index}`;
+                            return (
                             <motion.div
-                              key={index}
+                              key={uniqueKey}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 20 }}
@@ -714,7 +716,8 @@ export function QuickInvoiceModal({
                                 </motion.button>
                               </div>
                             </motion.div>
-                          ))}
+                            );
+                          })}
                         </AnimatePresence>
                       )}
                     </div>
@@ -826,8 +829,10 @@ export function QuickInvoiceModal({
                           >
                             <p className="font-bold text-gray-900 mb-2">Dịch vụ thêm</p>
                             <div className="space-y-2">
-                              {selectedServices.map((service, index) => (
-                                <div key={index} className="flex justify-between items-center text-sm">
+                              {selectedServices.map((service, index) => {
+                                const uniqueKey = `${service.serviceId || 'custom'}-${service.name}-${service.price}-${index}`;
+                                return (
+                                <div key={uniqueKey} className="flex justify-between items-center text-sm">
                                   <div className="flex items-center gap-2">
                                     <span className={service.isPaid ? "line-through opacity-50" : ""}>
                                       {service.name}
@@ -846,7 +851,8 @@ export function QuickInvoiceModal({
                                     {formatCurrency(service.price * service.quantity)}
                                   </span>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </motion.div>
                         )}
@@ -921,11 +927,13 @@ export function QuickInvoiceModal({
 
       {/* Pricing Selector Popup */}
       {showPricingSelector && selectedRoom && (
-        <PricingSelectorPopup
-          room={selectedRoom}
-          onClose={() => setShowPricingSelector(false)}
-          onSave={handleSavePricing}
-        />
+        <React.Fragment key="pricing-selector-popup">
+          <PricingSelectorPopup
+            room={selectedRoom}
+            onClose={() => setShowPricingSelector(false)}
+            onSave={handleSavePricing}
+          />
+        </React.Fragment>
       )}
     </AnimatePresence>
   );

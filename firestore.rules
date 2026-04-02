@@ -168,7 +168,11 @@ service cloud.firestore {
       // Users can read their own document (email is the document ID)
       allow read: if isSuperAdmin() || request.auth.token.email == userEmail;
       allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin();
+      // SuperAdmin can update everything, users can only update their own lastLoginAt
+      allow update: if isSuperAdmin() || (
+        request.auth.token.email == userEmail &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt'])
+      );
       allow delete: if isSuperAdmin();
     }
 

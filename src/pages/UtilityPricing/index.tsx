@@ -31,6 +31,21 @@ export function UtilityPricingPage({
     basePrice: 0
   });
 
+  // Edit pricing form state - at component level, not in IIFE
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState(0);
+
+  // Reset edit form when editingId changes
+  React.useEffect(() => {
+    if (editingId) {
+      const pricing = utilityPricing.find(p => p.id === editingId);
+      if (pricing) {
+        setEditName(pricing.name);
+        setEditPrice(pricing.basePrice);
+      }
+    }
+  }, [editingId, utilityPricing]);
+
   const tabs = [
     { key: 'all' as TabType, label: 'Tất cả', icon: null },
     { key: 'water' as TabType, label: 'Nước', icon: Droplets },
@@ -369,93 +384,88 @@ export function UtilityPricingPage({
       )}
 
       {/* Edit Modal (simplified - just edit name and price) */}
-      {editingId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Chỉnh sửa bảng giá</h3>
-              <button
-                onClick={() => setEditingId(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-gray-400" />
-              </button>
-            </div>
+      {editingId && (() => {
+        const pricing = utilityPricing.find(p => p.id === editingId);
+        if (!pricing) return null;
 
-            {(() => {
-              const pricing = utilityPricing.find(p => p.id === editingId);
-              if (!pricing) return null;
+        return (
+          <div key={`edit-${editingId}`} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Chỉnh sửa bảng giá</h3>
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
 
-              const [editName, setEditName] = useState(pricing.name);
-              const [editPrice, setEditPrice] = useState(pricing.basePrice);
-
-              return (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Tên bảng giá <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Giá cơ sở (VND) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={editPrice}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditPrice(Number(e.target.value))}
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg font-bold"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Đơn vị: {pricing.type === 'water' ? 'VND/người' : 'VND/kWh'}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => setEditingId(null)}
-                      disabled={saving}
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!editName || editPrice <= 0) return;
-                        setSaving(true);
-                        try {
-                          await onUpdatePricing(editingId, {
-                            name: editName,
-                            basePrice: editPrice
-                          });
-                          setEditingId(null);
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                      disabled={saving || !editName || editPrice <= 0}
-                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    >
-                      {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-                    </button>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Tên bảng giá <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
                 </div>
-              );
-            })()}
-          </motion.div>
-        </div>
-      )}
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Giá cơ sở (VND) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={editPrice}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditPrice(Number(e.target.value))}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg font-bold"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Đơn vị: {pricing.type === 'water' ? 'VND/người' : 'VND/kWh'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setEditingId(null)}
+                    disabled={saving}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!editName || editPrice <= 0) return;
+                      setSaving(true);
+                      try {
+                        await onUpdatePricing(editingId, {
+                          name: editName,
+                          basePrice: editPrice
+                        });
+                        setEditingId(null);
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    disabled={saving || !editName || editPrice <= 0}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
