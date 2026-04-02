@@ -152,7 +152,7 @@ export function GuestDetails({
                         {room ? 'Ngày vào phòng' : 'Ngày đăng ký'}
                       </p>
                       <p className="text-lg font-semibold text-slate-800">
-                        {room && room.currentGuestId === guest.id ? formatDate(guest.checkInDate) : formatDate(guest.checkInDate)}
+                        {room ? formatDate(guest.checkInDate) : formatDate(guest.checkInDate)}
                       </p>
                       {!room && (
                         <p className="text-xs text-slate-500 mt-1">Sẽ cập nhật khi gán phòng</p>
@@ -304,7 +304,7 @@ export function GuestDetails({
                         <div>
                           <p className="text-xs text-slate-500 font-bold uppercase mb-1">Ngày vào phòng</p>
                           <p className="font-bold text-slate-800">
-                            {room.currentGuestId === guest.id ? formatDate(guest.checkInDate) : 'Chưa gán'}
+                            {room ? formatDate(guest.checkInDate) : 'Chưa gán'}
                           </p>
                         </div>
                       </div>

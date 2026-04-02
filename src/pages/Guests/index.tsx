@@ -155,17 +155,21 @@ export function GuestsManager() {
 
   const handleCheckoutFromDetails = async () => {
     if (!selectedGuest) return;
-    
-    const room = rooms.find(r => r.currentGuestId === selectedGuest.id);
+
+    const room = rooms.find(r =>
+      r.guests && r.guests.some(g => g.guestId === selectedGuest.id)
+    );
     if (!room) {
       addToast('Không tìm thấy phòng của khách', 'error');
       return;
     }
 
     try {
+      const updatedGuests = (room.guests || []).filter(g => g.guestId !== selectedGuest.id);
+
       await updateDoc(doc(db, 'rooms', room.id), {
-        currentGuestId: null,
-        status: 'available'
+        guests: updatedGuests,
+        status: updatedGuests.length === 0 ? 'available' : 'occupied'
       });
       setShowDetailsModal(false);
       setCheckingOutGuestId(null);
@@ -258,7 +262,9 @@ export function GuestsManager() {
 
   // Get room for guest
   const getGuestRoom = (guest: Guest): Room | undefined => {
-    return rooms.find(r => r.currentGuestId === guest.id);
+    return rooms.find(r =>
+      r.guests && r.guests.some(g => g.guestId === guest.id)
+    );
   };
 
   return (
