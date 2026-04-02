@@ -155,8 +155,9 @@ service cloud.firestore {
       allow delete: if isWhitelisted();
     }
 
-    match /users/{userId} {
-      allow read: if isSuperAdmin();
+    match /users/{userEmail} {
+      // Users can read their own document (email is the document ID)
+      allow read: if isSuperAdmin() || request.auth.token.email == userEmail;
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin();

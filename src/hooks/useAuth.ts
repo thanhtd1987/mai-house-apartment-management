@@ -55,11 +55,12 @@ export function useAuth() {
         // Track login activity ONLY if user exists in users collection
         (async () => {
           try {
-            const userDoc = await getDoc(doc(db, 'users', u.uid));
+            // Use EMAIL as document ID (matches isWhitelisted() check in firestore.rules)
+            const userDoc = await getDoc(doc(db, 'users', u.email!));
 
             if (userDoc.exists()) {
               // Update lastLoginAt
-              await updateDoc(doc(db, 'users', u.uid), {
+              await updateDoc(doc(db, 'users', u.email!), {
                 lastLoginAt: new Date().toISOString()
               });
 
