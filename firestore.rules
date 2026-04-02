@@ -111,8 +111,14 @@ service cloud.firestore {
     }
 
     function isValidUtilityPricing(data) {
-      return data.water.pricePerPerson is number && data.water.pricePerPerson >= 0 &&
-             data.electricity.pricePerKwh is number && data.electricity.pricePerKwh >= 0 &&
+      return data.type is string &&
+             data.type in ['water', 'electricity'] &&
+             data.name is string &&
+             data.pricingModel is string &&
+             data.pricingModel in ['fixed_per_person', 'usage_based'] &&
+             data.basePrice is number &&
+             data.basePrice >= 0 &&
+             data.isActive is bool &&
              data.effectiveDate is string;
     }
 

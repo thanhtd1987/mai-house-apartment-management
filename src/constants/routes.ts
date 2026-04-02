@@ -19,7 +19,7 @@ export const ROUTE_TITLES = {
   [ROUTES.GUESTS]: 'Khách lưu trú',
   [ROUTES.FACILITIES]: 'Cơ sở vật chất',
   [ROUTES.INVOICES]: 'Hóa đơn & Thanh toán',
-  [ROUTES.UTILITY_PRICING]: 'Giá Dịch Vụ',
+  [ROUTES.UTILITY_PRICING]: 'Giá Điện & Nước',
   [ROUTES.SERVICES]: 'Dịch Vụ Thêm',
   [ROUTES.SMART_LOCKS]: 'Smart Locks',
   [ROUTES.USERS]: 'Quản lý Users'

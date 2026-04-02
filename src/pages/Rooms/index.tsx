@@ -13,7 +13,7 @@ import { useDataStore } from '../../stores';
 import { getCurrentMonth } from '../../types/roomServiceUsage';
 
 export function RoomsManager() {
-  const { rooms, facilities, guests, utilityPricing, extraServices } = useDataStore();
+  const { rooms, facilities, guests, extraServices } = useDataStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Partial<Room> | null>(null);
   const [filters, setFilters] = useState<{ search: string; status: RoomStatus | 'all' }>({
@@ -249,21 +249,6 @@ export function RoomsManager() {
     }
   };
 
-  // Get utility pricing config
-  const getUtilityPricingConfig = () => {
-    const waterPricing = utilityPricing.find(u => u.type === 'water' && u.isActive);
-    const electricityPricing = utilityPricing.find(u => u.type === 'electricity' && u.isActive);
-
-    return {
-      water: {
-        pricePerPerson: waterPricing?.basePrice || 60000
-      },
-      electricity: {
-        pricePerKwh: electricityPricing?.basePrice || 3500
-      }
-    };
-  };
-
   const getRoomGuestCount = (room: Room): number => {
     return room.guests?.length || 0;
   };
@@ -427,7 +412,6 @@ export function RoomsManager() {
           roomId={invoiceModalRoom?.id}
           guestCount={getRoomGuestCount(invoiceModalRoom)}
           onCreateInvoice={handleCreateInvoice}
-          utilityPricing={getUtilityPricingConfig()}
           availableServices={extraServices}
         />
       )}

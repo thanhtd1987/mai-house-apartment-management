@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt, FileText, Lock, Battery, Plus, AlertCircle } from 'lucide-react';
+import { X, Users, Calendar, ChevronDown, ChevronUp, UserPlus, ArrowRight, LogOut, Home, Settings, History, Building2, Crown, Shield, Edit3, Trash2, Receipt, FileText, Lock, Battery, Plus, AlertCircle, Edit2 } from 'lucide-react';
 import { Room, Guest, Facility, SmartLock } from '../../types';
 import { cn, formatCurrency, formatDate, isPast, getRoomGuestsWithDetails, roomHasRepresentative } from '../../utils';
 import { RoomServiceManager } from './RoomServiceManager';
@@ -8,8 +8,11 @@ import { SetupSmartLockModal } from '../smartLocks/SetupSmartLockModal';
 import { UpdatePasswordModal } from '../smartLocks/UpdatePasswordModal';
 import { UpdateBatteryModal } from '../smartLocks/UpdateBatteryModal';
 import { DeleteLockConfirmationModal } from '../smartLocks/DeleteLockConfirmationModal';
+import { PricingSelectorPopup } from '../pricing/PricingSelectorPopup';
 import { useSmartLocks } from '../../hooks/useSmartLocks';
 import { useDataStore } from '../../stores';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../services';
 
 interface OccupancyHistoryEntry {
   guestId: string;
@@ -326,6 +329,7 @@ export function RoomDetails({
   const { extraServices } = useDataStore();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showHistory, setShowHistory] = useState(false);
+  const [showPricingSelector, setShowPricingSelector] = useState(false);
 
   const tabs: { key: TabType; label: string; icon: any }[] = [
     { key: 'overview', label: 'Tổng quan', icon: Home },
@@ -349,6 +353,19 @@ export function RoomDetails({
   const otherGuests = roomGuests.filter(rg => !rg.isRepresentative);
   const hasGuests = roomGuests.length > 0;
   const hasRepresentative = roomHasRepresentative(room);
+
+  const handleSavePricing = async (waterPrice: number, electricityPrice: number) => {
+    try {
+      await updateDoc(doc(db, 'rooms', room.id), {
+        waterPrice,
+        electricityPrice
+      });
+      setShowPricingSelector(false);
+    } catch (error) {
+      console.error('Error updating room pricing:', error);
+      throw error;
+    }
+  };
 
   return (
     <motion.div
@@ -468,6 +485,52 @@ export function RoomDetails({
                     <p className="text-xl font-bold text-slate-800">{room.facilities?.length || 0}</p>
                     <p className="text-xs text-slate-500 mt-1">mục</p>
                   </div>
+                </div>
+
+                {/* Pricing Section */}
+                <div className="bg-gradient-to-br from-blue-50/50 to-indigo-100/30 backdrop-blur-sm rounded-3xl p-6 border border-blue-200/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <Receipt size={20} className="text-blue-600" />
+                      Giá điện & nước
+                    </h3>
+                    <button
+                      onClick={() => setShowPricingSelector(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                    >
+                      <Edit2 size={16} />
+                      Chỉnh sửa giá
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-blue-100">
+                      <p className="text-xs text-blue-600 font-bold uppercase tracking-wide mb-2">Giá nước</p>
+                      <p className="text-2xl font-bold text-slate-800">
+                        {room.waterPrice ? formatCurrency(room.waterPrice) : 'Chưa đặt'}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">/người</p>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-indigo-100">
+                      <p className="text-xs text-indigo-600 font-bold uppercase tracking-wide mb-2">Giá điện</p>
+                      <p className="text-2xl font-bold text-slate-800">
+                        {room.electricityPrice ? formatCurrency(room.electricityPrice) : 'Chưa đặt'}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">/kWh</p>
+                    </div>
+                  </div>
+                  {(!room.waterPrice || !room.electricityPrice) && (
+                    <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-amber-800">Chưa thiết lập giá đầy đủ</p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Vui lòng thiết lập cả giá điện và giá nước để tạo hóa đơn chính xác.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Current Occupants - Enhanced with Multiple Guests */}
@@ -791,6 +854,15 @@ export function RoomDetails({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Pricing Selector Popup */}
+          {showPricingSelector && (
+            <PricingSelectorPopup
+              room={room}
+              onClose={() => setShowPricingSelector(false)}
+              onSave={handleSavePricing}
+            />
+          )}
         </div>
       </motion.div>
     </motion.div>

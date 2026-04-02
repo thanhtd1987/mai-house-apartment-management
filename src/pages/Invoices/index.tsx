@@ -350,10 +350,6 @@ export function InvoicesManager() {
         }}
         // No roomId prop - allow user to select room (Mode 1: from Invoices page)
         onCreateInvoice={handleCreateInvoice}
-        utilityPricing={{
-          water: { pricePerPerson: 60000 },
-          electricity: { pricePerKwh: 3500 }
-        }}
         invoices={invoices}
       />
     </div>

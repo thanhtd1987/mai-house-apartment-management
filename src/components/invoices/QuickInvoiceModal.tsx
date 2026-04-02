@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Camera, Loader2, ChevronDown, ChevronUp, Info, Sparkles, Plus, Minus, Trash2 } from 'lucide-react';
+import { X, Camera, Loader2, ChevronDown, ChevronUp, Info, Sparkles, Plus, Minus, Trash2, Edit2 } from 'lucide-react';
 import { Room, ExtraService } from '../../types';
 import { ExtraServiceConfig } from '../../types/extraService';
 import { Invoice } from '../../types/invoice';
-import { cn, formatCurrency, calculateElectricity, filterRoomsWithoutInvoice } from '../../utils';
+import { cn, formatCurrency, filterRoomsWithoutInvoice } from '../../utils';
 import { useOCR, useRoomServiceUsages } from '../../hooks';
 import { AddInvoiceServiceModal } from './AddInvoiceServiceModal';
 import { getCurrentMonth } from '../../types/roomServiceUsage';
-import { useDataStore } from '../../stores';
+import { useDataStore, useToastStore } from '../../stores';
+import { PricingSelectorPopup } from '../pricing/PricingSelectorPopup';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../services';
 
 // Constants
-const WATER_FALLBACK_PRICE = 60000;
 const EDITED_BADGE_TEXT = 'Đã chỉnh';
 const ACTUAL_GUESTS_LABEL = 'Thực tế:';
 
@@ -29,18 +31,8 @@ interface QuickInvoiceModalProps {
   roomId?: string; // NEW: Pre-selected room ID for room page
   guestCount?: number;
   onCreateInvoice: (data: InvoiceData) => Promise<void>;
-  utilityPricing?: UtilityPricingConfig;
   invoices?: Invoice[]; // NEW: All invoices for filtering
   availableServices?: ExtraServiceConfig[];
-}
-
-export interface UtilityPricingConfig {
-  water: {
-    pricePerPerson: number;
-  };
-  electricity: {
-    pricePerKwh: number;
-  };
 }
 
 export interface InvoiceData {
@@ -62,7 +54,6 @@ export function QuickInvoiceModal({
   roomId, // NEW: Pre-selected room ID
   guestCount = 0,
   onCreateInvoice,
-  utilityPricing,
   invoices = [], // NEW: All invoices for filtering
   availableServices = []
 }: QuickInvoiceModalProps) {
@@ -82,6 +73,7 @@ export function QuickInvoiceModal({
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [billedGuestCount, setBilledGuestCount] = useState<number>(guestCount);
+  const [showPricingSelector, setShowPricingSelector] = useState(false);
   const hasUserEditedBilledCount = useRef(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -150,22 +142,32 @@ export function QuickInvoiceModal({
     }
   }, [guestCount]);
 
+  // Auto-show pricing selector if room lacks pricing
+  useEffect(() => {
+    if (selectedRoom && (!selectedRoom.waterPrice || !selectedRoom.electricityPrice)) {
+      setShowPricingSelector(true);
+    }
+  }, [selectedRoom]);
+
   // Calculate derived values (must be before early return)
   const electricityOld = selectedRoom?.lastElectricityMeter || 0;
   const electricityUsed = Math.max(0, electricityNew - electricityOld);
 
-  // Calculate water price - use billed guest count (editable)
+  // Calculate water price - use room's water price
   const waterPrice = useMemo(() => {
-    if (!utilityPricing || billedGuestCount === 0) return WATER_FALLBACK_PRICE;
-    return billedGuestCount * utilityPricing.water.pricePerPerson;
-  }, [utilityPricing, billedGuestCount]);
+    if (!selectedRoom?.waterPrice) {
+      return 0;
+    }
+    return billedGuestCount * selectedRoom.waterPrice;
+  }, [selectedRoom?.waterPrice, billedGuestCount]);
 
-  // Calculate electricity price
+  // Calculate electricity price - use room's electricity price
   const electricityPrice = useMemo(() => {
-    return utilityPricing
-      ? electricityUsed * utilityPricing.electricity.pricePerKwh
-      : calculateElectricity(electricityUsed);
-  }, [utilityPricing, electricityUsed]);
+    if (!selectedRoom?.electricityPrice) {
+      return 0;
+    }
+    return electricityUsed * selectedRoom.electricityPrice;
+  }, [selectedRoom?.electricityPrice, electricityUsed]);
 
   // Calculate services total - ONLY UNPAID services
   const servicesTotal = useMemo(() => {
@@ -220,6 +222,27 @@ export function QuickInvoiceModal({
     if (room) {
       setElectricityNew(room.lastElectricityMeter);
       setMeterImage(null);
+    }
+  };
+
+  const handleSavePricing = async (waterPrice: number, electricityPrice: number) => {
+    if (!selectedRoom) return;
+
+    try {
+      await updateDoc(doc(db, 'rooms', selectedRoom.id), {
+        waterPrice,
+        electricityPrice
+      });
+      // Update local state
+      setSelectedRoom({
+        ...selectedRoom,
+        waterPrice,
+        electricityPrice
+      });
+      setShowPricingSelector(false);
+    } catch (error) {
+      console.error('Error updating room pricing:', error);
+      throw error;
     }
   };
 
@@ -381,6 +404,48 @@ export function QuickInvoiceModal({
                     </motion.div>
                   )}
 
+                  {/* Pricing Display - Show when room is selected */}
+                  {selectedRoom && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                          <Info size={16} className="text-emerald-500" />
+                          Giá điện & nước
+                        </label>
+                        <button
+                          onClick={() => setShowPricingSelector(true)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                        >
+                          <Edit2 size={14} />
+                          Chỉnh sửa
+                        </button>
+                      </div>
+                      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Giá nước</p>
+                            <p className="text-lg font-bold text-gray-900">
+                              {selectedRoom.waterPrice ? formatCurrency(selectedRoom.waterPrice) : 'Chưa đặt'}{' '}
+                              <span className="text-xs font-normal text-gray-500">/người</span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Giá điện</p>
+                            <p className="text-lg font-bold text-gray-900">
+                              {selectedRoom.electricityPrice ? formatCurrency(selectedRoom.electricityPrice) : 'Chưa đặt'}{' '}
+                              <span className="text-xs font-normal text-gray-500">/kWh</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Electricity Input */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -531,7 +596,7 @@ export function QuickInvoiceModal({
                       <p className="text-xs text-gray-400 mt-2">
                         {isBilledCountModified
                           ? `${ACTUAL_GUESTS_LABEL} ${guestCount} khách → Tính cho ${billedGuestCount} khách`
-                          : `Tính ${formatCurrency(utilityPricing?.water.pricePerPerson || WATER_FALLBACK_PRICE)}/khách`
+                          : `Tính ${formatCurrency(selectedRoom?.waterPrice || 0)}/khách`
                         }
                       </p>
                     </div>
@@ -852,6 +917,15 @@ export function QuickInvoiceModal({
             />
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Pricing Selector Popup */}
+      {showPricingSelector && selectedRoom && (
+        <PricingSelectorPopup
+          room={selectedRoom}
+          onClose={() => setShowPricingSelector(false)}
+          onSave={handleSavePricing}
+        />
       )}
     </AnimatePresence>
   );

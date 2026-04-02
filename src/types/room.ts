@@ -24,6 +24,10 @@ export interface Room {
   // Smart lock reference (optional)
   smartLockId?: string;        // Reference to SmartLock
   hasSmartLock?: boolean;      // Quick check without populating
+
+  // Utility pricing - direct values (not IDs)
+  waterPrice?: number;       // Giá nước (VND/người)
+  electricityPrice?: number; // Giá điện (VND/kWh)
 }
 
 export type RoomType = Room['type'];

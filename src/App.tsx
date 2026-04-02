@@ -95,6 +95,7 @@ export default function App() {
               addToast('Không thể xóa giá!', 'error');
             }
           }}
+          utilityPricing={utilityPricing}
         />;
       case ROUTES.SERVICES:
         return <ServicesManager
