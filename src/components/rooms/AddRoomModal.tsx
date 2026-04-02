@@ -118,11 +118,12 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
   };
 
   const handleSavePricing = async (waterPrice: number, electricityPrice: number) => {
-    setFormData({
-      ...formData,
+    // Use functional update to avoid closure issues
+    setFormData(prev => ({
+      ...prev,
       waterPrice,
       electricityPrice
-    });
+    }));
 
     // Update selected IDs
     const waterPricing = utilityPricing.find(u => u.basePrice === waterPrice && u.type === 'water');
