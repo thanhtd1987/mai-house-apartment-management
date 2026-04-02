@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { X, Home, Settings, User, Calendar, DollarSign, Check } from 'lucide-react';
+import { X, Home, Settings, User, Calendar, DollarSign, Check, Edit2 } from 'lucide-react';
 import { Room, Facility } from '../../types';
 import { cn, formatCurrency } from '../../utils';
+import { useDataStore } from '../../stores';
+import { PricingSelectorPopup } from '../pricing/PricingSelectorPopup';
 
 interface AddRoomModalProps {
   isOpen: boolean;
@@ -15,8 +17,12 @@ interface AddRoomModalProps {
 type RoomStep = 'basic' | 'details' | 'facilities' | 'confirm';
 
 export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddRoomModalProps) {
+  const { utilityPricing } = useDataStore();
   const [step, setStep] = useState<RoomStep>('basic');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPricingSelector, setShowPricingSelector] = useState(false);
+  const [selectedWaterPricingId, setSelectedWaterPricingId] = useState<string>('');
+  const [selectedElectricityPricingId, setSelectedElectricityPricingId] = useState<string>('');
   const [formData, setFormData] = useState({
     number: '',
     meterId: '',
@@ -64,6 +70,40 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
     setStep('basic');
   }, [room, isOpen]);
 
+  // Auto-select first active pricing when modal opens
+  useEffect(() => {
+    if (isOpen && utilityPricing.length > 0) {
+      // Only auto-select if editing room with no pricing, or creating new room
+      const isNewRoom = !room?.id;
+      const hasNoPricing = !room?.waterPrice && !room?.electricityPrice;
+
+      if (isNewRoom || hasNoPricing) {
+        const firstWaterPricing = utilityPricing.find(u => u.type === 'water' && u.isActive);
+        const firstElectricityPricing = utilityPricing.find(u => u.type === 'electricity' && u.isActive);
+
+        if (firstWaterPricing && !selectedWaterPricingId) {
+          setSelectedWaterPricingId(firstWaterPricing.id);
+          setFormData(prev => ({ ...prev, waterPrice: firstWaterPricing.basePrice }));
+        }
+
+        if (firstElectricityPricing && !selectedElectricityPricingId) {
+          setSelectedElectricityPricingId(firstElectricityPricing.id);
+          setFormData(prev => ({ ...prev, electricityPrice: firstElectricityPricing.basePrice }));
+        }
+      } else if (room?.waterPrice || room?.electricityPrice) {
+        // Find matching pricing IDs for existing room prices
+        if (room.waterPrice) {
+          const waterPricing = utilityPricing.find(u => u.type === 'water' && u.basePrice === room.waterPrice);
+          if (waterPricing) setSelectedWaterPricingId(waterPricing.id);
+        }
+        if (room.electricityPrice) {
+          const electricityPricing = utilityPricing.find(u => u.type === 'electricity' && u.basePrice === room.electricityPrice);
+          if (electricityPricing) setSelectedElectricricPricingId(electricityPricing.id);
+        }
+      }
+    }
+  }, [isOpen, utilityPricing, room]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -75,6 +115,23 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSavePricing = async (waterPrice: number, electricityPrice: number) => {
+    setFormData({
+      ...formData,
+      waterPrice,
+      electricityPrice
+    });
+
+    // Update selected IDs
+    const waterPricing = utilityPricing.find(u => u.basePrice === waterPrice && u.type === 'water');
+    const electricityPricing = utilityPricing.find(u => u.basePrice === electricityPrice && u.type === 'electricity');
+
+    if (waterPricing) setSelectedWaterPricingId(waterPricing.id);
+    if (electricityPricing) setSelectedElectricricPricingId(electricityPricing.id);
+
+    setShowPricingSelector(false);
   };
 
   const isEditMode = !!room?.id;
@@ -285,31 +342,61 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-5 border border-cyan-200">
-                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        💧 Giá nước (VNĐ/người)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.waterPrice || ''}
-                        onChange={(e) => setFormData({ ...formData, waterPrice: Number(e.target.value) })}
-                        placeholder="0"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-bold"
-                      />
-                      <p className="text-xs text-slate-500 mt-2">Để trống nếu chưa có giá</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                          💧 Giá nước
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPricingSelector(true)}
+                          className="text-xs text-cyan-700 hover:text-cyan-900 font-semibold flex items-center gap-1"
+                        >
+                          <Edit2 size={12} />
+                          Chỉnh sửa
+                        </button>
+                      </div>
+                      {selectedWaterPricingId ? (() => {
+                        const pricing = utilityPricing.find(u => u.id === selectedWaterPricingId);
+                        return pricing ? (
+                          <div>
+                            <p className="text-lg font-bold text-cyan-700">{formatCurrency(pricing.basePrice)}/người</p>
+                            <p className="text-xs text-slate-500">{pricing.name}</p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400">Chưa chọn</p>
+                        );
+                      })() : (
+                        <p className="text-sm text-slate-400">Chưa chọn</p>
+                      )}
                     </div>
 
                     <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200">
-                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        ⚡ Giá điện (VNĐ/kWh)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.electricityPrice || ''}
-                        onChange={(e) => setFormData({ ...formData, electricityPrice: Number(e.target.value) })}
-                        placeholder="0"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg font-bold"
-                      />
-                      <p className="text-xs text-slate-500 mt-2">Để trống nếu chưa có giá</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                          ⚡ Giá điện
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPricingSelector(true)}
+                          className="text-xs text-amber-700 hover:text-amber-900 font-semibold flex items-center gap-1"
+                        >
+                          <Edit2 size={12} />
+                          Chỉnh sửa
+                        </button>
+                      </div>
+                      {selectedElectricityPricingId ? (() => {
+                        const pricing = utilityPricing.find(u => u.id === selectedElectricityPricingId);
+                        return pricing ? (
+                          <div>
+                            <p className="text-lg font-bold text-amber-700">{formatCurrency(pricing.basePrice)}/kWh</p>
+                            <p className="text-xs text-slate-500">{pricing.name}</p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400">Chưa chọn</p>
+                        );
+                      })() : (
+                        <p className="text-sm text-slate-400">Chưa chọn</p>
+                      )}
                     </div>
                   </div>
 
@@ -542,6 +629,25 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
             )}
           </form>
         </div>
+
+        {/* Pricing Selector Popup */}
+        {showPricingSelector && (
+          <PricingSelectorPopup
+            room={{
+              id: 'temp',
+              number: formData.number || 'New Room',
+              type: formData.type,
+              status: formData.status,
+              price: formData.price,
+              lastElectricityMeter: formData.lastElectricityMeter,
+              paymentStatus: formData.paymentStatus,
+              waterPrice: formData.waterPrice,
+              electricityPrice: formData.electricityPrice
+            } as Room}
+            onClose={() => setShowPricingSelector(false)}
+            onSave={handleSavePricing}
+          />
+        )}
       </motion.div>
     </motion.div>
   );
