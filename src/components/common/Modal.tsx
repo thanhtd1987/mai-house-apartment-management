@@ -21,7 +21,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'lg' }: ModalPr
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -33,15 +33,15 @@ export function Modal({ isOpen, onClose, title, children, size = 'lg' }: ModalPr
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative bg-white rounded-3xl shadow-2xl w-full ${sizeClasses[size]} overflow-hidden`}
+            className={`relative bg-white rounded-3xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col`}
           >
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-xl font-bold">{title}</h3>
+            <div className="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
+              <h3 className="text-lg md:text-xl font-bold">{title}</h3>
               <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {children}
             </div>
           </motion.div>

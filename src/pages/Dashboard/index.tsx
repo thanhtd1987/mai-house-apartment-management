@@ -41,7 +41,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard icon={<DollarSign className="text-emerald-600" />} label="Tổng doanh thu" value={formatCurrency(totalRevenue)} trend="+12.5%" />
         <StatCard icon={<Bed className="text-blue-600" />} label="Phòng đang ở" value={occupiedCount} subValue={`/${rooms.length} phòng`} />
         <StatCard icon={<CheckCircle2 className="text-amber-600" />} label="Phòng trống" value={availableCount} />
@@ -56,16 +56,16 @@ export function Dashboard() {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-lg">Biểu đồ doanh thu</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+        <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-3xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4 md:mb-6">
+            <h3 className="font-bold text-base md:text-lg">Biểu đồ doanh thu</h3>
             <select className="bg-gray-50 border-none rounded-lg text-xs p-2">
               <option>6 tháng qua</option>
               <option>Năm nay</option>
             </select>
           </div>
-          <div className="h-[300px] w-full">
+          <div className="h-[250px] md:h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -75,8 +75,8 @@ export function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#999'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#999'}} tickFormatter={(v) => `${v/1000000}M`} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} tickFormatter={(v) => `${v/1000000}M`} />
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   formatter={(v: number) => [formatCurrency(v), 'Doanh thu']}

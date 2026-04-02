@@ -39,12 +39,12 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssi
         {/* Top gradient accent */}
         <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-3 md:space-y-4">
           {/* Header - Guest Info & Actions */}
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-4 flex-1">
+          <div className="flex justify-between items-start gap-3">
+            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
               {/* Avatar */}
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-purple-500/30">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-base md:text-xl font-bold shadow-lg shadow-purple-500/30 shrink-0">
                 {guest.idPhoto ? (
                   <img
                     src={guest.idPhoto}
@@ -57,35 +57,35 @@ export function GuestCard({ guest, room, onEdit, onDelete, onViewDetails, onAssi
               </div>
 
               {/* Guest Info */}
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-800">{guest.name}</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base md:text-xl font-bold text-slate-800 truncate">{guest.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-slate-500">{guest.idNumber}</span>
+                  <span className="text-xs md:text-sm text-slate-500 truncate">{guest.idNumber}</span>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   onEdit(guest);
                 }}
-                className="p-2.5 hover:bg-purple-50 rounded-xl text-slate-500 hover:text-purple-600 transition-colors cursor-pointer"
+                className="p-2 md:p-2.5 hover:bg-purple-50 rounded-xl text-slate-500 hover:text-purple-600 transition-colors cursor-pointer"
                 aria-label="Chỉnh sửa khách"
               >
-                <Edit3 size={16} />
+                <Edit3 size={16} className="w-4 h-4 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   onDelete(guest.id);
                 }}
-                className="p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                className="p-2 md:p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
                 aria-label="Xóa khách"
               >
-                <Trash2 size={16} />
+                <Trash2 size={16} className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
