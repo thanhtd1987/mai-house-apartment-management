@@ -82,7 +82,10 @@ service cloud.firestore {
              data.status in ['available', 'occupied', 'maintenance'] &&
              data.price is number && data.price >= 0 &&
              data.lastElectricityMeter is number &&
-             data.paymentStatus in ['paid', 'unpaid', 'debt'];
+             data.paymentStatus in ['paid', 'unpaid', 'debt'] &&
+             // Optional utility pricing fields
+             (!data.containsKey('waterPrice') || (data.waterPrice is number && data.waterPrice >= 0)) &&
+             (!data.containsKey('electricityPrice') || (data.electricityPrice is number && data.electricityPrice >= 0));
     }
 
     function isValidGuest(data) {
