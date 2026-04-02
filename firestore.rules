@@ -171,7 +171,8 @@ service cloud.firestore {
 
     match /utilityPricing/{pricingId} {
       allow read: if isAuthenticated();
-      allow create, update: if isWhitelisted() && isValidUtilityPricing(request.resource.data);
+      // All authenticated users can manage pricing (managers need this for daily operations)
+      allow create, update: if isAuthenticated() && isValidUtilityPricing(request.resource.data);
       allow delete: if isWhitelisted();
     }
 
