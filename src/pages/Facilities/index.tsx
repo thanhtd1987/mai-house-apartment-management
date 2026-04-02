@@ -38,25 +38,25 @@ export function FacilitiesManager() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {facilities.map(f => (
-          <div key={f.id} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-gray-50 rounded-2xl">
-                <Settings className="text-gray-400" size={24} />
+          <div key={f.id} className="bg-white p-4 md:p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex justify-between items-start mb-3 md:mb-4">
+              <div className="p-2 md:p-3 bg-gray-50 rounded-2xl">
+                <Settings className="text-gray-400 w-5 h-5 md:w-6 md:h-6" size={20} />
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
                 <button onClick={() => { setEditingFacility(f); setIsModalOpen(true); }} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-                  <Edit3 size={14} />
+                  <Edit3 size={12} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>
                 <button onClick={() => deleteDoc(doc(db, 'facilities', f.id))} className="p-1 hover:bg-rose-50 rounded-lg text-rose-500">
-                  <Trash2 size={14} />
+                  <Trash2 size={12} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>
               </div>
             </div>
-            <h4 className="font-bold text-lg mb-1">{f.name}</h4>
-            <p className="text-xs text-gray-400 font-bold uppercase mb-3">Giá đền bù</p>
-            <p className="text-emerald-600 font-bold">{formatCurrency(f.compensationPrice)}</p>
+            <h4 className="font-bold text-base md:text-lg mb-1">{f.name}</h4>
+            <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase mb-2 md:mb-3">Giá đền bù</p>
+            <p className="text-emerald-600 font-bold text-sm md:text-base">{formatCurrency(f.compensationPrice)}</p>
           </div>
         ))}
       </div>

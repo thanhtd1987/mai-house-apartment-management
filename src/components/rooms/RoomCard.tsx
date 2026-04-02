@@ -36,40 +36,40 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
         {/* Top gradient accent */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-500" />
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-3 md:space-y-4">
           {/* Header - Room Number & Actions */}
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-2xl font-bold text-slate-800">Phòng {room.number}</h3>
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2 flex-wrap">
+                <h3 className="text-xl md:text-2xl font-bold text-slate-800">Phòng {room.number}</h3>
                 <span className={cn(
-                  "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
+                  "px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wide",
                   config.color
                 )}>
                   {config.label}
                 </span>
                 {room.hasSmartLock && (
-                  <span title="Có smart lock">
+                  <span title="Có smart lock" className="text-sm md:text-base">
                     🔒
                   </span>
                 )}
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs md:text-sm text-slate-500">
                 {room.type === 'single' ? 'Phòng đơn (1-2 người)' : 'Phòng đôi (3-4 người)'}
               </p>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex gap-1 md:gap-2 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   onEdit(room);
                 }}
-                className="p-2.5 hover:bg-blue-50 rounded-xl text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                className="p-2 md:p-2.5 hover:bg-blue-50 rounded-xl text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
                 aria-label="Chỉnh sửa phòng"
               >
-                <Edit3 size={16} />
+                <Edit3 size={16} className="w-4 h-4 md:w-5 md:h-5" />
               </button>
               {room.status === 'occupied' && onCreateInvoice && (
                 <motion.button
@@ -79,7 +79,7 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
                     e.stopPropagation();
                     onCreateInvoice(room);
                   }}
-                  className="p-2.5 hover:bg-emerald-50 rounded-xl text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer relative"
+                  className="p-2 md:p-2.5 hover:bg-emerald-50 rounded-xl text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer relative"
                   aria-label="Tạo hóa đơn"
                 >
                   <motion.div
@@ -87,9 +87,9 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                     className="absolute inset-0 opacity-0 hover:opacity-100"
                   >
-                    <Sparkles size={16} className="text-emerald-500" />
+                    <Sparkles size={16} className="text-emerald-500 w-4 h-4 md:w-5 md:h-5" />
                   </motion.div>
-                  <FileText size={16} />
+                  <FileText size={16} className="w-4 h-4 md:w-5 md:h-5" />
                 </motion.button>
               )}
               <button
@@ -97,10 +97,10 @@ export function RoomCard({ room, guest, onEdit, onDelete, onViewGuest, onAssignG
                   e.stopPropagation();
                   onDelete(room.id);
                 }}
-                className="p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                className="p-2 md:p-2.5 hover:bg-rose-50 rounded-xl text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
                 aria-label="Xóa phòng"
               >
-                <Trash2 size={16} />
+                <Trash2 size={16} className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>

@@ -190,7 +190,7 @@ export function UsersManager() {
   return (
     <div className="space-y-6">
       {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard label="Tổng Users" value={stats.total} icon={Users} color="blue" />
         <StatCard label="Đang Hoạt Động" value={stats.active} icon={Activity} color="green" subLabel="(7 ngày qua)" />
         <StatCard label="Chưa Login" value={stats.neverLoggedIn} icon={Clock} color="orange" />
@@ -207,7 +207,7 @@ export function UsersManager() {
       {/* Users Grid */}
       {users.length === 0 ? (
         <div className="text-center py-12">
-          <Users size={48} className="mx-auto text-slate-300 mb-4" />
+          <Users size={48} className="mx-auto text-slate-300 mb-4 w-12 h-12" />
           <h3 className="text-lg font-medium text-slate-600 mb-2">
             Chưa có user nào
           </h3>
@@ -216,7 +216,7 @@ export function UsersManager() {
           </p>
         </div>
       ) : (
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {users.map(user => (
             <UserCard key={user.id} user={user} onEdit={handleEditUser} onDelete={handleRemoveUser} />
           ))}

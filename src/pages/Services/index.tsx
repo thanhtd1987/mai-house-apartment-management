@@ -65,10 +65,10 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dịch Vụ Thêm</h1>
-          <p className="text-gray-500 mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dịch Vụ Thêm</h1>
+          <p className="text-gray-500 mt-1 md:mt-2 text-sm">
             Quản lý các dịch vụ: giặt ủi, dọn phòng, tiện nghi...
           </p>
         </div>
@@ -77,7 +77,7 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
             setEditingService(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors text-sm"
         >
           <Plus size={18} />
           Thêm dịch vụ
@@ -85,7 +85,7 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -118,14 +118,14 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
 
       {/* Services Grid */}
       {filteredServices.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-            <Plus size={40} className="text-gray-400" />
+        <div className="text-center py-12 md:py-16">
+          <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 rounded-full bg-gray-100 flex items-center justify-center">
+            <Plus size={32} className="text-gray-400 w-8 h-8 md:w-10 md:h-10" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">
             {searchQuery || categoryFilter !== 'all' ? 'Không tìm thấy dịch vụ nào' : 'Chưa có dịch vụ nào'}
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-500 mb-4 md:mb-6 text-sm">
             {searchQuery || categoryFilter !== 'all'
               ? 'Thử thay đổi bộ lọc'
               : 'Bắt đầu thêm dịch vụ đầu tiên'}
@@ -148,7 +148,7 @@ export function ServicesManager({ onUpdateServices }: ServicesManagerProps) {
           )}
         </div>
       ) : (
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <AnimatePresence>
             {filteredServices.map((service) => (
               <motion.div

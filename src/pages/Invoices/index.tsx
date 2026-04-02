@@ -91,44 +91,44 @@ export function InvoicesManager() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <p className="text-gray-500 text-sm">Quản lý hóa đơn và lịch sử thanh toán.</p>
         <Button onClick={handleCreateInvoiceClick} icon={<Plus size={18} />}>
           Tạo hóa đơn tháng
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {invoices.map(invoice => {
           const room = rooms.find(r => r.id === invoice.roomId);
           return (
             <div
               key={invoice.id}
               id={`invoice-card-${invoice.id}`}
-              className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative cursor-pointer"
+              className="bg-white p-4 md:p-6 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-all group relative cursor-pointer"
               onClick={() => setViewingInvoice(invoice)}
             >
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-3 md:mb-4">
                 <div>
-                  <h3 className="text-xl font-bold">Phòng {room?.number}</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Tháng {invoice.month}/{invoice.year}</p>
-                  {invoice.meterId && <p className="text-[10px] text-gray-400 font-bold uppercase">Mã ĐH: {invoice.meterId}</p>}
+                  <h3 className="text-lg md:text-xl font-bold">Phòng {room?.number}</h3>
+                  <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Tháng {invoice.month}/{invoice.year}</p>
+                  {invoice.meterId && <p className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase">Mã ĐH: {invoice.meterId}</p>}
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-export">
+                <div className="flex gap-1 md:gap-2 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity no-export">
                   {invoice.status === 'unpaid' && (
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditInvoice(invoice); }}
                         className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                       >
-                        <Edit3 size={16} />
+                        <Edit3 size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDelete(invoice); }}
                         className="p-2 hover:bg-rose-50 rounded-lg text-rose-500"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       </button>
                     </>
                   )}
@@ -136,12 +136,12 @@ export function InvoicesManager() {
                     onClick={(e) => { e.stopPropagation(); exportInvoice(invoice.id); }}
                     className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                   >
-                    <Download size={16} />
+                    <Download size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-4 text-sm">
+              <div className="space-y-1 md:space-y-2 mb-3 md:mb-4 text-xs md:text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Tổng cộng:</span>
                   <span className="font-bold">{formatCurrency(invoice.totalPrice)}</span>
@@ -167,7 +167,7 @@ export function InvoicesManager() {
                       await updateDoc(doc(db, 'rooms', room.id), { paymentStatus: 'paid' });
                     }
                   }}
-                  className="w-full py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all"
+                  className="w-full py-2 bg-black text-white rounded-xl font-bold text-xs md:text-sm hover:bg-gray-800 transition-all"
                 >
                   Xác nhận đã thu
                 </button>
