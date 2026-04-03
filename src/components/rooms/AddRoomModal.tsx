@@ -98,7 +98,7 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
         }
         if (room.electricityPrice) {
           const electricityPricing = utilityPricing.find(u => u.type === 'electricity' && u.basePrice === room.electricityPrice);
-          if (electricityPricing) setSelectedElectricricPricingId(electricityPricing.id);
+          if (electricityPricing) setSelectedElectricityPricingId(electricityPricing.id);
         }
       }
     }
@@ -130,7 +130,7 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
     const electricityPricing = utilityPricing.find(u => u.basePrice === electricityPrice && u.type === 'electricity');
 
     if (waterPricing) setSelectedWaterPricingId(waterPricing.id);
-    if (electricityPricing) setSelectedElectricricPricingId(electricityPricing.id);
+    if (electricityPricing) setSelectedElectricityPricingId(electricityPricing.id);
 
     setShowPricingSelector(false);
   };
@@ -421,8 +421,8 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
                       formData.paymentStatus === 'paid'
                         ? "bg-gradient-to-br from-green-50 to-green-100/50 border-green-200"
                         : formData.paymentStatus === 'unpaid'
-                        ? "bg-gradient-to-br from-rose-50 to-rose-100/50 border-rose-200"
-                        : "bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200"
+                          ? "bg-gradient-to-br from-rose-50 to-rose-100/50 border-rose-200"
+                          : "bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200"
                     )}>
                       <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
                         <Calendar size={16} className="text-slate-600" />
@@ -599,7 +599,7 @@ export function AddRoomModal({ isOpen, onClose, onSave, room, facilities }: AddR
                           <span
                             key={fid}
                             className="px-3 py-1 bg-white border border-purple-200 rounded-full text-xs font-semibold text-purple-700"
-                            >
+                          >
                             {fac.name}
                           </span>
                         ) : null;
